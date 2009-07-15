@@ -106,32 +106,36 @@ function data_ui_admin_form_submit($form, &$form_state) {
   if ($form_state['clicked_button']['#value'] == t('Save')) {
     $fields = $schema['fields'];
     $new_fields = $form_state['values']['fields'];
-  
-    // Convert schema.
-    foreach ($fields as $field_name => $field) {
-      if ($new_spec = _data_ui_changed($new_fields[$field_name], $field)) {
-        $table->changeField($field_name, $new_spec);
-        drupal_set_message(t('Changed field !field_name', array('!field_name' => $field_name)));
-      }
-    }
-  
-    // Update meta data.
-    $meta = $table->get('meta');
-    foreach ($new_fields as $field_name => $field) {
-      $meta['fields'][$field_name]['label'] = $field['label'];
-    }
-    $table->update(array('meta' => $meta));
-  
-    // Bulk updates.
-    switch ($form_state['values']['bulk_operation']) {
-      case 'delete':
-        foreach ($new_fields as $field_name => $field) {
-          if (!empty($field['selected'])) {
-            $table->dropField($field_name);
-            drupal_set_message(t('Deleted field !field_name', array('!field_name' => $field_name)));
-          }
+
+    if (empty($form_state['values']['bulk_operation'])) {
+
+      // Convert schema.
+      foreach ($fields as $field_name => $field) {
+        if ($new_spec = _data_ui_changed($new_fields[$field_name], $field)) {
+          $table->changeField($field_name, $new_spec);
+          drupal_set_message(t('Changed field !field_name', array('!field_name' => $field_name)));
         }
-        break;
+      }
+    
+      // Update meta data.
+      $meta = $table->get('meta');
+      foreach ($new_fields as $field_name => $field) {
+        $meta['fields'][$field_name]['label'] = $field['label'];
+      }
+      $table->update(array('meta' => $meta));
+    }
+    else {
+      // Bulk updates.
+      switch ($form_state['values']['bulk_operation']) {
+        case 'delete':
+          foreach ($new_fields as $field_name => $field) {
+            if (!empty($field['selected'])) {
+              $table->dropField($field_name);
+              drupal_set_message(t('Deleted field !field_name', array('!field_name' => $field_name)));
+            }
+          }
+          break;
+      }
     }
   }
   elseif ($form_state['clicked_button']['#value'] == t('Add new')) {

@@ -1,13 +1,13 @@
 <?php
 // $Id$
 
-// Save modes.
-// On save(), only update data that is currently accomodated by table.
+// Adjustment modes.
+// Only use existing storage. This is default behavior and defined for consistency.
 define('DATA_UPDATE', 'update');
-// @todo: On save(), expand data store if it does not accomodate data.
+// @todo: Expand data store if it differs.
 define('DATA_EXPAND', 'expand'); 
-// @todo: On save(), expand or contract data store with data.
-define('DATA_EXPAND_CONTRACT', 'truncate');
+// @todo: Expand or contract data store if it differs.
+define('DATA_EXPAND_CONTRACT', 'expand_contract');
 
 /**
  * Function for creating a data access object.
@@ -477,9 +477,8 @@ class DataTable {
 
   /**
    * Save to data table.
-   * @todo: implement other modes.
    */
-  public function save($record, $update = array(), $mode = DATA_UPDATE) {
+  public function save($record, $update = array()) {
     if (count($update)) {
       $keys = array();
       foreach ($update as $key) {
