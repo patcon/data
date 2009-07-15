@@ -260,6 +260,7 @@ function data_build_field_spec($stub) {
 class DataTable {
 
   // Class variables.
+  // @todo: change $table_schema to $schema.
   // Unfortunately drupal_write_record does not escape field names. $table_schema instead of $schema it is.
   protected $name, $title, $table_schema, $meta;
 
@@ -424,7 +425,9 @@ class DataTable {
     // @todo: test for success first.
     $schema = $this->table_schema;
     unset($schema['fields'][$field]);
-    $this->update(array('table_schema' => $schema));
+    $meta = $this->meta;
+    unset($meta['fields'][$field]);
+    $this->update(array('table_schema' => $schema), array('meta' => $meta));
   }
 
   /**
