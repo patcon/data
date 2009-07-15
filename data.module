@@ -13,7 +13,7 @@ define('DATA_EXPAND_CONTRACT', 'truncate');
  * Function for creating a data access object.
  * 
  * @todo: this should not create a table if not available. First
- * data_allocate_table() then data_get_table()
+ * data_reserve_table() then data_get_table()
  *
  * @param $name
  *   String that identifies the data table. It is recommended to use 
@@ -40,7 +40,7 @@ function data_get_table($name, $title = '') {
  * 
  * @todo: this should be data_reserve_table();
  */
-function data_allocate_table($table, $title) {
+function data_reserve_table($table, $title) {
   return data_get_table($table, $title);
 }
 
@@ -69,13 +69,11 @@ function data_get_all_tables() {
 }
 
 /**
- * Get a list of available field types.
+ * Get a list of available, simplified field types.
  * 
  * This list is a sub set of Schema API data types 
  * http://drupal.org/node/159605
  * The keys are simplified handles.
- * 
- * @todo: move this and data_translate_field_type() to feedapi_data() ?
  */
 function data_get_field_types() {
   return array(
