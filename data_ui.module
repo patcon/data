@@ -1,0 +1,52 @@
+<?php
+// $Id$
+
+/**
+ * Implementation of hook_menu()
+ */
+function data_ui_menu(){
+  $items = array();
+  $items['admin/content/data'] = array(
+    'title' => 'Data tables',
+    'description' => 'Administer data tables.',
+    'page callback' => 'data_ui_overview',
+    'file' => 'data_ui.admin.inc',
+    'access arguments' => array('administer data tables'), 
+  );  
+  $items['admin/content/data/%data_ui_table'] = array(
+    'title' => 'Data table',
+    'description' => 'Administer data tables.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('data_ui_admin_form', 3),
+    'file' => 'data_ui.admin.inc',
+    'access arguments' => array('administer data tables'),
+    'type' => MENU_CALLBACK, 
+  );
+  return $items;
+}
+
+/**
+ * Menu loader callback.
+ */
+function data_ui_table_load($table_name) {
+  return data_get_table($table_name);
+}
+
+/**
+ * Implementation of hook_theme()
+ */
+function data_ui_theme() {
+  return array(
+    'data_ui_admin_form' => array(
+      'arguments' => array('form' => array()),
+    ),
+  );
+}
+
+
+/**
+ * Implementation of hook_perm().
+ */
+function data_ui_perm() {
+  return array('administer data tables');
+}

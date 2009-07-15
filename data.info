@@ -1,0 +1,5 @@
+; $Id$
+name = Data
+description = Provides two dimensional storage space for arbitrary data sets.
+package = Data
+core = 6.x
