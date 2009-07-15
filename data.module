@@ -101,14 +101,14 @@ function data_get_field_types() {
 /**
  * Translate a simplified handle into a schema API type definition.
  * 
- * If no type can be found, 'varchar' will be returned.
+ * If no type can be found, FALSE will be returned.
  */
 function data_translate_field_type($type) {
   $types = data_get_field_types();
   if (isset($types[$type])) {
     return $types[$type];
   }
-  return $types['varchar'];
+  return FALSE;
 }
 
 /**
@@ -120,7 +120,13 @@ function data_name($table) {
 }
 
 /**
- * Create a machine safe name.
+ * Create a safe name for MySQL field or table names.
+ * 
+ * @todo: IMPROVE.
+ * 
+ * - make sure all unsafe characters are removed.
+ * - filter magic words.
+ * - test pgsql.
  */
 function data_safe_name($name) {
   $map = array(
@@ -171,12 +177,20 @@ function data_get_default_path($name) {
  * @todo: may be add option to add a full fledged schema here?
  */
 function data_build_schema($keys) {
-  // Build the table definition.
   $fields = $schema = array();
   $field_types = data_get_field_types();
+
+  // Build the table definition.
+  // Fall back to varchar if no valid type is given.
   foreach ($keys as $k => $type) {
-    $fields[data_safe_name($k)] = data_translate_field_type($type);
+    if ($type = data_translate_field_type($type)) {
+      $fields[data_safe_name($k)] = $type;
+    }
+    else {
+      $fields[data_safe_name($k)] = $field_types['varchar'];
+    }
   }
+
   $schema['fields'] = $fields;
   $schema['indexes'] = array();
   return $schema;
@@ -362,6 +376,9 @@ class DataTable {
 
   /**
    * Add a field.
+   * 
+   * @todo: Check wether field name is available, otherwise change.
+   * @todo: Return false if not successful.
    */
   public function addField($field, $spec) {
     $ret = array();
@@ -371,6 +388,8 @@ class DataTable {
     $schema = $this->table_schema;
     $schema['fields'][$field] = $spec;
     $this->update(array('table_schema' => $schema));
+
+    return $field;
   }
 
   /**
