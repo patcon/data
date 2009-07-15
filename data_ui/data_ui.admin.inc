@@ -3,6 +3,8 @@
 
 /**
  * Overview over all tables.
+ * 
+ * @todo: add 'create table' functionality.
  */
 function data_ui_overview() {
   
@@ -35,26 +37,28 @@ function data_ui_admin_form(&$form_state, $table) {
 
   // Existing fields.
   $form['fields'] = array('#tree' => TRUE);
-  foreach ($schema['fields'] as $field_name => $field) {
-    $form['fields'][$field_name] = array();
-    $form['fields'][$field_name]['selected'] = array(
-      '#type' => 'checkbox',
-    );
-    $form['fields'][$field_name]['name'] = array('#value' => $field_name);
-    $form['fields'][$field_name]['label'] = array(
-      '#type' => 'textfield',
-      '#size' => 20,
-      '#default_value' => $meta['fields'][$field_name]['label'],
-    );
-    $form['fields'][$field_name]['type'] = array(
-      '#type' => 'select',
-      '#options' => drupal_map_assoc(array('int', 'varchar', 'text')),
-      '#default_value' => $field['type'],
-    );
-    $form['fields'][$field_name]['unsigned'] = array(
-      '#type' => 'checkbox',
-      '#default_value' => $field['unsigned'],
-    );
+  if (isset($schema['fields'])) {
+    foreach ($schema['fields'] as $field_name => $field) {
+      $form['fields'][$field_name] = array();
+      $form['fields'][$field_name]['selected'] = array(
+        '#type' => 'checkbox',
+      );
+      $form['fields'][$field_name]['name'] = array('#value' => $field_name);
+      $form['fields'][$field_name]['label'] = array(
+        '#type' => 'textfield',
+        '#size' => 20,
+        '#default_value' => $meta['fields'][$field_name]['label'],
+      );
+      $form['fields'][$field_name]['type'] = array(
+        '#type' => 'select',
+        '#options' => drupal_map_assoc(array('int', 'varchar', 'text')),
+        '#default_value' => $field['type'],
+      );
+      $form['fields'][$field_name]['unsigned'] = array(
+        '#type' => 'checkbox',
+        '#default_value' => $field['unsigned'],
+      );
+    }
   }
 
   // Add a new field.

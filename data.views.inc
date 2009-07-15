@@ -22,7 +22,7 @@ function data_views_data() {
     $schema = $table->get('table_schema');
     $meta = $table->get('meta');
     if (!isset($schema['fields'])) {
-      return;
+      continue;
     }
 
     $table_data = array();
@@ -51,9 +51,9 @@ function data_views_data() {
           'handler' => _data_viewsfield_sort($field['type']),
           'help' => t('Sort by %field', array('%field' => $title)),
         ),
-      );
-      
+      );      
     }
+
     // Tables with a primary key are base tables.
     if (isset($table_schema['primary key']) && count($table_schema['primary key']) >= 1) {
       $table_data['table']['base'] = array(
@@ -64,12 +64,23 @@ function data_views_data() {
       );
     }
 
-    // @todo: add join information
+    // Add join information.
+    if ($links = $table->get('links')) {
+      $table['table']['join'] = array();
+      foreach ($links as $link) {
+        // @todo: See if left table has other tables it is linked to and link
+        // all the way to the leftmost table.
+        $table_data['table']['join'][$link['left_table']] = array(
+          'left_field' => $link['left_field'],
+          'field' => $link['right_field'],
+          'type' => $link['inner_join'] ? 'INNER' : 'LEFT',
+        );
+      }
+    }
 
     $data[$table->get('name')] = $table_data;
   }
-  
-  
+
   return $data;
 }
 

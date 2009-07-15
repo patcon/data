@@ -39,6 +39,7 @@ function data_schema() {
         'name' => array('name'),
       ),
   );
+  // @todo: we call join information in DataTable 'links' but here we call it 'join'.
   $schema['data_join'] = array(
     'description' => 'Join information for tables managed Data module.',
     'fields' => array(

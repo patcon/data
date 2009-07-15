@@ -15,6 +15,7 @@ define('DATA_EXPAND_CONTRACT', 'expand_contract');
 function data_views_api() {
   return array(
     'api' => '2.0',
+    'path' => drupal_get_path('module', 'data'),
   );
 }
 
@@ -310,16 +311,25 @@ class DataTable {
   }
 
   /**
-   * Get the title of the DataTable.
+   * Get a property of the DataTable object.
    * 
    * @param $property
-   *   One of 'name', 'title', 'table_schema', 'meta'.
+   *   One of 'name', 'title', 'table_schema', 'meta', 'links'.
    * @return 
    *   The unserialized value of the property.
    */
   public function get($property) {
     if (in_array($property, array('name', 'title', 'table_schema', 'meta'))) {
       return $this->$property;
+    }
+    // Links aren't loaded automatically.
+    if ($property == 'links') {
+      $result = db_query('SELECT * FROM {data_join} WHERE right_table = "%s"', $this->name);
+      $links = array();
+      while ($link = db_fetch_array($result)) {
+        $links[$link->left_table] = $link;
+      }
+      return count($links) ? $links : FALSE;
     }
   }
 
@@ -442,26 +452,26 @@ class DataTable {
   /**
    * Link this table to another table.
    */
-  public function link($foreignTable, $foreignKey, $key = NULL) {
-    if ($key == NULL) {
-      $key = $foreignKey;
+  public function link($foreignTable, $foreignField, $field = NULL, $inner = TRUE) {
+    if ($field == NULL) {
+      $field = $foreignField;
     }
+    $this->unlink($foreignTable);
+    $join_info = array(
+      'left_table' => $foreignTable,
+      'right_table' => $this->name,
+      'left_field' => $foreignField,
+      'right_field' => $field,
+      'inner_join' => $inner ? 1 : 0,
+    );
+    drupal_write_record('data_join', $join_info);
   }
 
   /**
    * Unlink this table from another table.
-   * @todo
    */
   public function unlink($foreignTable) {
-    
-  }
-
-  /**
-   * Get linked tables.
-   * @todo
-   */
-  public function getLinks() {
-    
+    db_query('DELETE FROM {data_join} WHERE left_table = "%s" AND right_table = "%s"', $foreignTable, $this->name);
   }
 
   /**
