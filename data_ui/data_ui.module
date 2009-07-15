@@ -33,6 +33,16 @@ function data_ui_table_load($table_name) {
 }
 
 /**
+ * Implementation of hook_views_api().
+ */
+function data_ui_views_api() {
+  return array(
+    'api' => '2.0',
+    'path' => drupal_get_path('module', 'data_ui') .'/views',
+    );
+}
+
+/**
  * Implementation of hook_theme()
  */
 function data_ui_theme() {

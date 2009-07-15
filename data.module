@@ -10,6 +10,16 @@ define('DATA_EXPAND', 'expand');
 define('DATA_EXPAND_CONTRACT', 'expand_contract');
 
 /**
+ * Implementation of hook_views_api().
+ */
+function data_views_api() {
+  return array(
+    'api' => '2.0',
+    'path' => drupal_get_path('module', 'data') .'/views',
+    );
+}
+
+/**
  * Function for creating a data access object.
  * 
  * @todo: this should not create a table if not available. First
