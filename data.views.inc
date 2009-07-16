@@ -26,9 +26,12 @@ function data_views_data() {
     }
 
     $table_data = array();
+    $table_data['table'] = array(
+      'group' => $table->get('title'),
+      );
     foreach ($schema['fields'] as $field_name => $field) {
       // If there is no label, generate one from field name.
-      $title = isset($meta['fields'][$field_name]['label']) ? $meta['fields'][$field_name]['label'] : data_natural_name($field_name);
+      $title = empty($meta['fields'][$field_name]['label']) ? data_natural_name($field_name) : $meta['fields'][$field_name]['label'];
 
       $table_data[$field_name] = array(
         'title' => $title,
@@ -66,7 +69,7 @@ function data_views_data() {
 
     // Add join information.
     if ($links = $table->get('links')) {
-      $table['table']['join'] = array();
+      $table_data['table']['join'] = array();
       foreach ($links as $link) {
         // @todo: See if left table has other tables it is linked to and link
         // all the way to the leftmost table.

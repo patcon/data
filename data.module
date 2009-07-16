@@ -458,19 +458,17 @@ class DataTable {
    */
   public function addField($field, $spec) {
 
-    if ($this->exists()) {
-      $ret = array();
-      db_add_field($ret, $this->name, $field, $spec);
-  
-      // @todo: test for success.
-      $schema = $this->table_schema;
-      $schema['fields'][$field] = $spec;
-      $this->update(array('table_schema' => $schema));
-    }
-    else {
-      
-    }
+    $ret = array();
+    db_add_field($ret, $this->name, $field, $spec);
 
+    // @todo: test for success.
+    $schema = $this->table_schema;
+    $schema['fields'][$field] = $spec;
+    $this->update(array('table_schema' => $schema));
+
+    // @todo: maybe move these cache clearing functions to their own method
+    // and let take API users take care of caching.
+    drupal_get_schema($this->name, TRUE);
     return $field;
   }
 
@@ -485,6 +483,8 @@ class DataTable {
     $schema = $this->table_schema;
     $schema['fields'][$field] = $spec;
     $this->update(array('table_schema' => $schema));
+
+    drupal_get_schema($this->name, TRUE);
   }
 
   /**
@@ -500,6 +500,8 @@ class DataTable {
     $meta = $this->meta;
     unset($meta['fields'][$field]);
     $this->update(array('table_schema' => $schema), array('meta' => $meta));
+
+    drupal_get_schema($this->name, TRUE);
   }
 
   /**
@@ -508,7 +510,8 @@ class DataTable {
   public function drop() {
     db_drop_table($ret, $this->name);
     $this->update(array('table_schema' => array()));
-    $this->table_schema = array();
+
+    drupal_get_schema($this->name, TRUE);
   }
 
   /**
