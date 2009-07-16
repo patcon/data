@@ -20,5 +20,4 @@ Check out FeedAPI Data module for using Data as a storage engine for feed items.
 DEVELOPMENT
 ===========
 
-This module is currently under development and pretty much untested. Use with 
-caution.
+This module is currently under development. Use with caution.

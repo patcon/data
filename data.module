@@ -238,7 +238,7 @@ function data_build_field_spec($stub) {
 }
 
 /**
- * Internal singleton function for getting a DataTable table.
+ * Internal singleton function for creating a single instance of a DataTable class.
  *
  * @param $name
  *   Unique name of the table.
@@ -264,8 +264,11 @@ function _data_get_table($name) {
  * 
  * $table = data_get_table('my_table');
  * 
- * Initialize a table - this does not yet create the table itself, but it reserves the name.
- * $table = data_init_table('my_table').
+ * If the table does not exist, initialize a table 
+ * - this does not yet create the table itself, but it reserves the name.
+ * if (!$table) {
+ *  $table = data_init_table('my_table');
+ * }
  * 
  * Now create a table by providing a schema.
  * $table->create($schema);
@@ -292,6 +295,7 @@ class DataTable {
 
   // Class variables.
   // @todo: change $table_schema to $schema.
+  // @todo: change $name to $id.
   // Unfortunately drupal_write_record does not escape field names. $table_schema instead of $schema it is.
   protected $name, $title, $table_schema, $meta;
 
