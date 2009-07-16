@@ -2,5 +2,5 @@
 name = Data Admin UI
 description = Admin UI for Data Module
 package = Data
-; dependencies[] = data
+dependencies[] = data
 core = 6.x

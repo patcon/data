@@ -3,13 +3,19 @@ $Id$
 Data module
 ===========
 
-This module provides a data API for 
+The Data module provides
 
-* dynamically allocating tables for single-row records
-* insert/update/delete operations
-* automatic views integration
+* An API for dynamically allocating tables for single-row records
+* An API for insert/update/delete operations
+* Automatic views integration
 
-Check out FeedAPI data module for using data as storage engine for feed items.
+Its companion Data UI provides
+
+* UI to add new database tables (planned)
+* UI to add or alter columns to existing tables managed by Data module
+* Default views for tables managed by Data module (planned)
+
+Check out FeedAPI Data module for using Data as a storage engine for feed items.
 
 DEVELOPMENT
 ===========
