@@ -83,8 +83,10 @@ function data_get_schema() {
 function data_get_all_tables() {
   $tables = array();
   $result = db_query('SELECT name FROM {data_tables}');
-  while ($table = db_fetch_object($result)) {
-    $tables[$table->name] = data_get_table($table->name);
+  while ($row = db_fetch_object($result)) {
+    if ($table = data_get_table($row->name)) {
+      $tables[$row->name] = $table;
+    }
   }
   return $tables;
 }
