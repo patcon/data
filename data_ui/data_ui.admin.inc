@@ -3,8 +3,6 @@
 
 /**
  * Overview over all tables.
- * 
- * @todo: add 'create table' functionality.
  */
 function data_ui_overview() {
   
