@@ -118,7 +118,7 @@ function data_ui_add_form_submit($form, &$form_state) {
         $index[$field['name']] = array($field['name']);
       }
       if (!empty($field['primary'])) {
-        $primary[] = $field['primary'];
+        $primary[] = $field['name'];
       }
     }
     $schema['indexes'] = $index;
@@ -146,7 +146,7 @@ function data_ui_drop_form(&$form_state, $table) {
 
   return confirm_form($form,
     t('Drop this table?'),
-    $path,
+    'admin/content/data',
     t('Are you sure you would like to drop table !table? This action cannot be undone.', array('!table' => $table->get('name'))),
     t('Drop'), t('Cancel')
   );
@@ -211,6 +211,10 @@ function data_ui_edit_form(&$form_state, $table) {
 
   // Add a new field.
   $form['new'] = _data_ui_field_form();
+  $form['new']['primary'] = array(
+    '#type' => 'markup',
+    '#value' => '&nbsp;',
+    );
   $form['new']['add'] = array(
     '#type' => 'submit',
     '#value' => t('Add new'),
@@ -285,11 +289,9 @@ function data_ui_edit_form_submit($form, &$form_state) {
   elseif ($form_state['clicked_button']['#value'] == t('Add new')) {
     $new = $form_state['values']['new'];
     $spec = data_build_field_spec($new);
-    if ($table->exists()) {
-      $table->addField($new['name'], $spec);
-    }
-    else {
-      $table->create(array('fields' => array($new['name'] => $spec)));
+    $table->addField($new['name'], $spec);
+    if (!empty($new['index'])) {
+      $table->addIndex($new['name']);
     }
     $meta = $table->get('meta');
     $meta['fields'][$new['name']]['label'] = $new['label'];
@@ -332,7 +334,7 @@ function theme_data_ui_edit_form($form) {
   $rows = array();
   foreach (element_children($form['fields']) as $e) {
     $row = array();
-    foreach (element_children($form['fields'][$e]) as $f) {    
+    foreach (element_children($form['fields'][$e]) as $f) { 
       $row[] = drupal_render($form['fields'][$e][$f]);
     }
     $row[] = '&nbsp;';

@@ -463,6 +463,43 @@ class DataTable {
   }
 
   /**
+   * Add an index to table.
+   * 
+   * @todo: support more than one field.
+   */
+  public function addIndex($field) {
+    $schema = $this->table_schema;
+    if ($schema['fields'][$field]) {
+      if ($schema['fields'][$field]['type'] == 'text') {
+        $index = array(array($field, 255));
+      }
+      else {
+        $index = array($field);
+      }
+      db_add_index($ret, $this->name, $field, $index);
+      if ($ret[0]['success']) {
+        $schema['indexes'][$field] = array($field);
+        $this->update(array('table_schema' => $schema));
+        drupal_get_schema($this->name, TRUE);
+      }
+    }
+  }
+
+  /**
+   * Add a primary key to table.
+   */
+  public function addPrimaryKey($fields) {
+    $ret = array();
+    db_add_primary_key($ret, $this->name, $fields);
+    if ($ret[0]['success']) {
+      $schema = $this->table_schema;
+      $schema['primary key'] = $fields;
+      $this->update(array('table_schema' => $schema));
+      drupal_get_schema($this->name, TRUE);
+    }
+  }
+
+  /**
    * Change a field.
    */
   public function changeField($field, $spec) {
