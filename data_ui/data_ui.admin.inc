@@ -15,7 +15,7 @@ function data_ui_overview() {
     );
   }
   $rows[] = array(
-    l(t('Create new table'), 'admin/content/data/add'),
+    l(t('Create new table'), 'admin/content/data/create'),
     '&nbsp;',
   );
   $header = array(t('Name'), t('Operations'));
@@ -27,22 +27,44 @@ function data_ui_overview() {
  */
 function data_ui_add_form(&$form_state) {
   $form = array();
-  $form['#redirect'] = 'admin/content/data';
-  $form['name'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Table name'),
-    '#description' => t('Machine readable name of the table - e. g. "my_table". Must only contain lower case letters and _.'),
-    '#required' => TRUE,
-  );
-  $form['title'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Table title'),
-    '#description' => t('Natural name of the table - e. g. "My Table".'),
-  );
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Add'),
-  );
+  if ($form_state['storage']['field_num']) {
+    $form['#redirect'] = 'admin/content/data';
+    $form['help']['#value'] = t('Define the fields of the new table.');
+    $form['fields'] = array(
+      '#tree' => TRUE,
+    );
+    for ($i = 0; $i < $form_state['storage']['field_num']; $i++) {
+      $form['fields']['field_'. $i] = _data_ui_field_form(TRUE);
+    }
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Create'),
+    );
+  }
+  else {
+    $form['name'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Table name'),
+      '#description' => t('Machine readable name of the table - e. g. "my_table". Must only contain lower case letters and _.'),
+      '#required' => TRUE,
+    );
+    $form['title'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Table title'),
+      '#description' => t('Natural name of the table - e. g. "My Table".'),
+    );
+    $form['field_num'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Number of fields'),
+      '#description' => t('The number of fields this table should contain.'),
+      '#default_value' => 1,
+      '#required' => TRUE,
+    );
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Next'),
+    );
+  }
   return $form;
 }
 
@@ -53,13 +75,53 @@ function data_ui_add_form_validate($form, &$form_state) {
   if (data_get_table(data_name($form_state['values']['name']))) {
     form_set_error('name', t('Name is already taken.')); 
   }
+  if (isset($form_state['values']['field_num'])) {
+    if (is_numeric($form_state['values']['field_num'])) {
+      if ($form_state['values']['field_num'] < 1) {
+        form_set_error('field_num', t('At least one field must be created.')); 
+      }
+    }
+    else {
+      form_set_error('field_num', t('Enter a number greater than 0.')); 
+    }
+  }
+  // Check for dupes.
+  if (isset($form_state['values']['fields'])) {
+    $names = array();
+    foreach ($form_state['values']['fields'] as $field) {
+      if (is_numeric($names[$field['name']])) {
+        form_set_error('name', t('Names can\'t be numbers.'));
+      }
+      if (!isset($names[$field['name']])) {
+        $names[$field['name']] = $field['name'];
+      }
+      else {
+        form_set_error('name', t('Names must be unique.'));
+      }
+    }
+  }
 }
 
 /**
  * Submit handler for add table form.
  */
 function data_ui_add_form_submit($form, &$form_state) {
-  data_init_table(data_name($form_state['values']['name']), $form_state['values']['title']);
+  if (isset($form_state['values']['field_num'])) {
+    $form_state['storage'] = $form_state['values'];
+  }
+  elseif (isset($form_state['values']['fields'])) {
+    $schema = array();
+    foreach ($form_state['values']['fields'] as $field) {
+      $schema['fields'][$field['name']] = data_build_field_spec($field);
+    }
+    dsm($form_state);
+    if ($table = data_create_table(data_name(trim($form_state['storage']['name'])), $schema, trim($form_state['storage']['title']))) {
+      drupal_set_message(t('Created table !table', array('!table' => $table->get('name'))));
+    }
+    else {
+      drupal_set_message(t('Error creating table'), 'error');
+    }
+  }
 }
 
 
@@ -84,7 +146,7 @@ function data_ui_drop_form(&$form_state, $table) {
  */
 function data_ui_drop_form_submit($form, &$form_state) {
   $table = $form['#table'];
-  $table->drop();
+  data_drop_table($table->get('name'));
 }
 
 /**
@@ -129,22 +191,7 @@ function data_ui_edit_form(&$form_state, $table) {
   }
 
   // Add a new field.
-  $form['new'] = array('#tree' => TRUE);
-  $form['new']['name'] = array(
-    '#type' => 'textfield',
-    '#size' => 20,
-  );
-  $form['new']['label'] = array(
-    '#type' => 'textfield',
-    '#size' => 20,
-  );
-  $form['new']['type'] = array(
-    '#type' => 'select',
-    '#options' => drupal_map_assoc(array('int', 'varchar', 'text')),
-  );
-  $form['new']['unsigned'] = array(
-    '#type' => 'checkbox',
-  );
+  $form['new'] = _data_ui_field_form();
   $form['new']['add'] = array(
     '#type' => 'submit',
     '#value' => t('Add new'),
@@ -200,15 +247,16 @@ function data_ui_edit_form_submit($form, &$form_state) {
       switch ($form_state['values']['bulk_operation']) {
         case 'delete':
           foreach ($new_fields as $field_name => $field) {
-            $schema = $table->get('table_schema');
-            if (count($schema['fields']) > 1) {
-              if (!empty($field['selected'])) {
+            if (!empty($field['selected'])) {
+              // One field must stay.
+              $schema = $table->get('table_schema');
+              if (count($schema['fields']) > 1) {
                 $table->dropField($field_name);
                 drupal_set_message(t('Deleted field !field_name', array('!field_name' => $field_name)));
               }
-            }
-            else {
-              drupal_set_message('You cannot delete all fields from a table, drop the table instead.', 'error');
+              else {
+                drupal_set_message('You cannot delete all fields from a table, drop the table instead.', 'error');
+              }
             }
           }
           break;
@@ -230,6 +278,31 @@ function data_ui_edit_form_submit($form, &$form_state) {
   }
 }
 
+/**
+ * Theme data_ui_add_form.
+ */
+function theme_data_ui_add_form($form) {
+
+  // Render field definition form elements in a table.
+  if (isset($form['fields'])) {
+    $output = drupal_render($form['help']);
+
+    $rows = array();
+    foreach (element_children($form['fields']) as $e) {
+      $row = array();
+      foreach (element_children($form['fields'][$e]) as $f) {    
+        $row[] = drupal_render($form['fields'][$e][$f]);
+      }
+      $rows[] = $row;
+    }
+    $header = array(t('Name *'), t('Label'), t('Type'), t('Unsigned'));
+    $output .= theme('table', $header, $rows);
+
+    $output .= drupal_render($form);
+    return $output;
+  }
+  return drupal_render($form);
+}
 
 /**
  * Theme data_ui_admin_form.
@@ -282,4 +355,29 @@ function _data_ui_changed($new, $field) {
     return $field;
   }
   return FALSE;
+}
+
+/**
+ * Helper function that generates a form snippet for defining a field.
+ */
+function _data_ui_field_form($required = FALSE) {
+  $form = array();
+  $form['#tree'] = TRUE;
+  $form['name'] = array(
+    '#type' => 'textfield',
+    '#size' => 20,
+    '#required' => $required,
+  );
+  $form['label'] = array(
+    '#type' => 'textfield',
+    '#size' => 20,
+  );
+  $form['type'] = array(
+    '#type' => 'select',
+    '#options' => drupal_map_assoc(array('int', 'varchar', 'text')),
+  );
+  $form['unsigned'] = array(
+    '#type' => 'checkbox',
+  );
+  return $form;
 }

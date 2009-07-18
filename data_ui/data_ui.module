@@ -13,9 +13,9 @@ function data_ui_menu(){
     'file' => 'data_ui.admin.inc',
     'access arguments' => array('administer data tables'), 
   );
-  $items['admin/content/data/add'] = array(
-    'title' => 'Add a table',
-    'description' => 'Add a data table.',
+  $items['admin/content/data/create'] = array(
+    'title' => 'Create a table',
+    'description' => 'Create a data table.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('data_ui_add_form'),
     'file' => 'data_ui.admin.inc',
@@ -65,6 +65,9 @@ function data_ui_views_api() {
 function data_ui_theme() {
   return array(
     'data_ui_edit_form' => array(
+      'arguments' => array('form' => array()),
+    ),
+    'data_ui_add_form' => array(
       'arguments' => array('form' => array()),
     ),
   );

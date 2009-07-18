@@ -20,17 +20,18 @@ function data_views_api() {
 }
 
 /**
- * Initialize a table.
+ * Create a table.
  * 
  * Usage:
- * $table = data_init_table('my_table', 'My table');
- * $table->create($schema);
+ * $table = data_create_table('my_table', $schema, 'My table');
  * $table->save($data);
  * 
  * @param $name
  *   String that identifies the data table. It is recommended to use 
  *   data_name() to generate a table name in the data namespace. For
  *   example: $table = data_get_tabe(data_name('my_table'));
+ * @param $schema
+ *   Schema for the table.
  * @param $title
  *   A natural title for the table.
  * 
@@ -38,13 +39,11 @@ function data_views_api() {
  *   A DataTable object if init could create one,
  *   FALSE if not.
  */
-function data_init_table($name, $title = NULL) {
-  $table = _data_get_table($name);
-  if ($table->initialized()) {
+function data_create_table($name, $schema, $title = NULL) {
+  if (_data_get_table($name)) {
     return FALSE;
   }
-  $table->init($name, $title);
-  return $table;
+  return _data_get_table($name, $schema, $title);
 }
 
 /**
@@ -58,11 +57,48 @@ function data_init_table($name, $title = NULL) {
  *   FALSE if not.
  */
 function data_get_table($name) {
-  $table = _data_get_table($name);
-  if ($table->initialized()) {
+  if ($table = _data_get_table($name)) {
     return $table;
   }
   return FALSE;
+}
+
+/**
+ * Drop a table - use this instead of $table->drop().
+ */
+function data_drop_table($name) {
+  if ($table = data_get_table($name)) {
+    $table->drop();
+    _data_get_table($name, NULL, NULL, TRUE);
+  }
+}
+
+/**
+ * Internal singleton/factory function for creating a single instance of a DataTable class.
+ * 
+ * If a schema is given, _data_get_table() creates the table objects DB structure.
+ * 
+ * Don't use this function directly. Call data_create_table() or data_get_table() instead.
+ * 
+ * @todo: add dropping.
+ */
+function _data_get_table($name, $schema = NULL, $title = NULL, $reset = FALSE) {
+  static $tables;
+  $class = variable_get('data_table_class', 'DataTable');
+  if ($reset) {
+    unset($tables[$name]);
+  }
+
+  if (!isset($tables[$table])) {
+    if ($name = db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $name))) {
+      $tables[$name] = new $class($name);
+    }
+  }
+  if ($schema) {
+    $table = new $class($name, $schema, $title);
+    $tables[$name] = $table;
+  }
+  return isset($tables[$name]) ? $tables[$name] : FALSE;
 }
 
 /**
@@ -88,6 +124,7 @@ function data_get_all_tables() {
       $tables[$row->name] = $table;
     }
   }
+  
   return $tables;
 }
 
@@ -238,23 +275,6 @@ function data_build_field_spec($stub) {
 }
 
 /**
- * Internal singleton function for creating a single instance of a DataTable class.
- *
- * @param $name
- *   Unique name of the table.
- * @return
- *   A DataTable object.
- */
-function _data_get_table($name) {
-  static $tables;
-  if (!isset($tables[$name])) {
-    $class = variable_get('data_table_class', 'DataTable');
-    $tables[$name] = new $class($name, $title);
-  }
-  return $tables[$name];
-}
-
-/**
  * Manages data access and manipulation for a single data table.
  * Use data_allocate_table() or data_get_table() to instantiate an object from this class.
  * 
@@ -264,14 +284,10 @@ function _data_get_table($name) {
  * 
  * $table = data_get_table('my_table');
  * 
- * If the table does not exist, initialize a table 
- * - this does not yet create the table itself, but it reserves the name.
+ * If the table does not exist, create one.
  * if (!$table) {
- *  $table = data_init_table('my_table');
+ *  $table = data_create_table('my_table', $schema);
  * }
- * 
- * Now create a table by providing a schema.
- * $table->create($schema);
  * 
  * Save some data to it.
  * $table->save($data);
@@ -280,16 +296,8 @@ function _data_get_table($name) {
  * $table->truncate();
  * 
  * Remove the table, but not the meta information about the table.
- * $table->drop();
+ * data_drop_table('my_table');
  * 
- * Create a new table providing a different schema.
- * $table->create($other_schema);
- * 
- * Save data again.
- * $table->save($other_data);
- * 
- * Destroy the table and all information about the table.
- * $table->destroy();
  */
 class DataTable {
 
@@ -302,16 +310,29 @@ class DataTable {
   /**
    * Constructor.
    */
-  public function __construct($name) {
-    $this->name = $name;
-    $this->loadSelf($name);
+  public function __construct($name, $table_schema = NULL, $title = NULL) {
+    if ($table_schema) {      
+      $table = array(
+        'name' => $name,
+        'title' => empty($title) ? data_natural_name($name) : $title,
+        'table_schema' => array(),
+        'meta' => array(),
+      );
+      drupal_write_record('data_tables', $table);
+
+      $this->init($name);
+      $this->create($table_schema);
+    }
+    else {
+      $this->init($name);
+    }
   }
 
   /**
    * Load DataTable data from DB.
    */
-  protected function loadSelf() {
-    if ($table = db_fetch_object(db_query('SELECT * FROM {data_tables} WHERE name = "%s"', $this->name))) {
+  protected function init($name) {
+    if ($table = db_fetch_object(db_query('SELECT * FROM {data_tables} WHERE name = "%s"', $name))) {
       foreach (array('title', 'name') as $key) {
         $this->$key = $table->$key;
       }
@@ -324,49 +345,23 @@ class DataTable {
   }
 
   /**
-   * Initialize a data table: write properties to DB.
+   * Create a table.
    */
-  public function init($name, $title = NULL) {
-    if ($this->initialized()) {
+  protected function create($table_schema) {
+    // Create table.
+    db_create_table($ret, $this->name, $table_schema);
+    if ($ret[0]['success'] != 1) {
+      drupal_set_message(t('Error creating table.'), 'error');
       return FALSE;
     }
 
-    // Create data table record if not present.
-    $table = array(
-      'name' => $name,
-      'title' => empty($title) ? data_natural_name($name) : $title,
-      'table_schema' => array(),
-      'meta' => array(),
-    );
-    drupal_write_record('data_tables', $table);
+    // Update table_schema information.
+    $this->update(array('table_schema' => $table_schema));
 
-    return $this->loadSelf();
-  }
+    // Clear cache.
+    drupal_get_schema($this->name, TRUE);
 
-  /**
-   * Determines whether a table is initalized.
-   * 
-   * @todo: clean up.
-   */
-  public function initialized() {
-    $name = db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $this->name));
-    return $name ? TRUE : FALSE;
-  }
-
-  /**
-   * Destroy a DataTable. This is the opposite to DataTable::init().
-   * 
-   * While init creates DataTable information in the DB, destroy() removes it. 
-   *  
-   * We do not use __destruct() for this because we don't want to 
-   * destroy the table and information about the table when deleting the access
-   * object. 
-   */
-  public function destroy() {
-    $this->drop();
-    db_query('DELETE FROM {data_tables} WHERE name = "%s"', $this->name);
-    $this->title = '';
-    $this->table_schema = $this->meta = array();
+    return TRUE;
   }
 
   /**
@@ -406,26 +401,6 @@ class DataTable {
         $this->$key = $value;
       }
     }
-  }
-
-  /**
-   * Create a table.
-   */
-  public function create($table_schema) {
-    // Create table.
-    db_create_table($ret, $this->name, $table_schema);
-    if ($ret[0]['success'] != 1) {
-      drupal_set_message(t('Error creating table.'), 'error');
-      return FALSE;
-    }
-
-    // Update table_schema information.
-    $this->update(array('table_schema' => $table_schema));
-
-    // Clear cache.
-    drupal_get_schema($this->name, TRUE);
-
-    return TRUE;
   }
  
   /**
@@ -529,13 +504,17 @@ class DataTable {
   }
 
   /**
-   * Drop a table.
+   * Drop a table. Don't call this function directly, but
+   * use data_drop_table() instead.
    */
   public function drop() {
     db_drop_table($ret, $this->name);
     $this->update(array('table_schema' => array()));
-
     drupal_get_schema($this->name, TRUE);
+
+    db_query('DELETE FROM {data_tables} WHERE name = "%s"', $this->name);
+    $this->title = '';
+    $this->table_schema = $this->meta = array();
   }
 
   /**
