@@ -79,8 +79,6 @@ function data_drop_table($name) {
  * If a schema is given, _data_get_table() creates the table objects DB structure.
  * 
  * Don't use this function directly. Call data_create_table() or data_get_table() instead.
- * 
- * @todo: add dropping.
  */
 function _data_get_table($name, $schema = NULL, $title = NULL, $reset = FALSE) {
   static $tables;
@@ -90,13 +88,12 @@ function _data_get_table($name, $schema = NULL, $title = NULL, $reset = FALSE) {
   }
 
   if (!isset($tables[$table])) {
-    if ($name = db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $name))) {
+    if (db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $name))) {
       $tables[$name] = new $class($name);
     }
   }
   if ($schema) {
-    $table = new $class($name, $schema, $title);
-    $tables[$name] = $table;
+    $tables[$name] = new $class($name, $schema, $title);
   }
   return isset($tables[$name]) ? $tables[$name] : FALSE;
 }

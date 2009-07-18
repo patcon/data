@@ -27,21 +27,7 @@ function data_ui_overview() {
  */
 function data_ui_add_form(&$form_state) {
   $form = array();
-  if ($form_state['storage']['field_num']) {
-    $form['#redirect'] = 'admin/content/data';
-    $form['help']['#value'] = t('Define the fields of the new table.');
-    $form['fields'] = array(
-      '#tree' => TRUE,
-    );
-    for ($i = 0; $i < $form_state['storage']['field_num']; $i++) {
-      $form['fields']['field_'. $i] = _data_ui_field_form(TRUE);
-    }
-    $form['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Create'),
-    );
-  }
-  else {
+  if (!$form_state['storage']['field_num']) {
     $form['name'] = array(
       '#type' => 'textfield',
       '#title' => t('Table name'),
@@ -63,6 +49,19 @@ function data_ui_add_form(&$form_state) {
     $form['submit'] = array(
       '#type' => 'submit',
       '#value' => t('Next'),
+    );
+  }
+  else {
+    $form['help']['#value'] = t('Define the fields of the new table.');
+    $form['fields'] = array(
+      '#tree' => TRUE,
+    );
+    for ($i = 0; $i < $form_state['storage']['field_num']; $i++) {
+      $form['fields']['field_'. $i] = _data_ui_field_form(TRUE);
+    }
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Create'),
     );
   }
   return $form;
@@ -110,17 +109,29 @@ function data_ui_add_form_submit($form, &$form_state) {
     $form_state['storage'] = $form_state['values'];
   }
   elseif (isset($form_state['values']['fields'])) {
-    $schema = array();
+
+    // Create a schema from user input.
+    $schema = $index = $primary = array();
     foreach ($form_state['values']['fields'] as $field) {
       $schema['fields'][$field['name']] = data_build_field_spec($field);
+      if (!empty($field['index'])) {
+        $index[$field['name']] = array($field['name']);
+      }
+      if (!empty($field['primary'])) {
+        $primary[] = $field['primary'];
+      }
     }
-    dsm($form_state);
+    $schema['indexes'] = $index;
+    $schema['primary keys'] = $primary;
     if ($table = data_create_table(data_name(trim($form_state['storage']['name'])), $schema, trim($form_state['storage']['title']))) {
       drupal_set_message(t('Created table !table', array('!table' => $table->get('name'))));
     }
     else {
       drupal_set_message(t('Error creating table'), 'error');
     }
+    // Unset storage to enable redirect.
+    unset($form_state['storage']);
+    $form_state['redirect'] = 'admin/content/data';
   }
 }
 
@@ -186,6 +197,14 @@ function data_ui_edit_form(&$form_state, $table) {
       $form['fields'][$field_name]['unsigned'] = array(
         '#type' => 'checkbox',
         '#default_value' => $field['unsigned'],
+      );
+      $form['fields'][$field_name]['index'] = array(
+        '#type' => 'checkbox',
+        '#default_value' => isset($schema['indexes'][$field_name]), // @todo
+      );
+      $form['fields'][$field_name]['primary'] = array(
+        '#type' => 'checkbox',
+        '#default_value' => in_array($field_name, $schema['primary keys']),
       );
     }
   }
@@ -295,7 +314,7 @@ function theme_data_ui_add_form($form) {
       }
       $rows[] = $row;
     }
-    $header = array(t('Name *'), t('Label'), t('Type'), t('Unsigned'));
+    $header = array(t('Name *'), t('Label'), t('Type'), t('Unsigned'), t('Index'), t('Primary key'));
     $output .= theme('table', $header, $rows);
 
     $output .= drupal_render($form);
@@ -327,7 +346,7 @@ function theme_data_ui_edit_form($form) {
   }
   $rows[] = $row;
 
-  $header = array(t('Select'), t('Name'), t('Label'), t('Type'), t('Unsigned'));
+  $header = array(t('Select'), t('Name'), t('Label'), t('Type'), t('Unsigned'), t('Index'), t('Primary key'));
   $output .= theme('table', $header, $rows);
   $output .= drupal_render($form);
   return $output;
@@ -377,6 +396,12 @@ function _data_ui_field_form($required = FALSE) {
     '#options' => drupal_map_assoc(array('int', 'varchar', 'text')),
   );
   $form['unsigned'] = array(
+    '#type' => 'checkbox',
+  );
+  $form['index'] = array(
+    '#type' => 'checkbox',
+  );
+  $form['primary'] = array(
     '#type' => 'checkbox',
   );
   return $form;
