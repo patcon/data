@@ -40,7 +40,7 @@ function data_views_api() {
  */
 function data_init_table($name, $title = NULL) {
   $table = _data_get_table($name);
-  if ($table->exists()) {
+  if ($table->initialized()) {
     return FALSE;
   }
   $table->init($name, $title);
@@ -59,7 +59,7 @@ function data_init_table($name, $title = NULL) {
  */
 function data_get_table($name) {
   $table = _data_get_table($name);
-  if ($table->exists()) {
+  if ($table->initialized()) {
     return $table;
   }
   return FALSE;
@@ -327,7 +327,7 @@ class DataTable {
    * Initialize a data table: write properties to DB.
    */
   public function init($name, $title = NULL) {
-    if ($this->exists()) {
+    if ($this->initialized()) {
       return FALSE;
     }
 
@@ -341,6 +341,16 @@ class DataTable {
     drupal_write_record('data_tables', $table);
 
     return $this->loadSelf();
+  }
+
+  /**
+   * Determines whether a table is initalized.
+   * 
+   * @todo: clean up.
+   */
+  public function initialized() {
+    $name = db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $this->name));
+    return $name ? TRUE : FALSE;
   }
 
   /**
@@ -417,6 +427,19 @@ class DataTable {
 
     return TRUE;
   }
+ 
+  /**
+   * Determine whether a table exists for this DataTable or not.
+   * 
+   * @return 
+   *   TRUE if there is a table for this DataTable, FALSE if not.
+   */
+  public function exists() {
+    if (empty($this->table_schema)) {
+      return FALSE;
+    }
+    return TRUE;
+  }
 
   /**
    * Adjust table.
@@ -444,19 +467,6 @@ class DataTable {
   }
 
   /**
-   * Determine whether a table exists for this DataTable or not.
-   * 
-   * @return 
-   *   TRUE if there is a table for this DataTable, FALSE if not.
-   */
-  public function exists() {
-    if (empty($this->table_schema)) {
-      return FALSE;
-    }
-    return TRUE;
-  }
-
-  /**
    * Add a field.
    * 
    * @todo: Check wether field name is available, otherwise change.
@@ -467,15 +477,17 @@ class DataTable {
     $ret = array();
     db_add_field($ret, $this->name, $field, $spec);
 
-    // @todo: test for success.
-    $schema = $this->table_schema;
-    $schema['fields'][$field] = $spec;
-    $this->update(array('table_schema' => $schema));
-
-    // @todo: maybe move these cache clearing functions to their own method
-    // and let take API users take care of caching.
-    drupal_get_schema($this->name, TRUE);
-    return $field;
+    if ($ret[0]['success']) {
+      $schema = $this->table_schema;
+      $schema['fields'][$field] = $spec;
+      $this->update(array('table_schema' => $schema));
+  
+      // @todo: maybe move these cache clearing functions to their own method
+      // and let take API users take care of caching.
+      drupal_get_schema($this->name, TRUE);
+      return $field;
+    }
+    return FALSE;
   }
 
   /**
@@ -485,12 +497,15 @@ class DataTable {
     $ret = array();
     db_change_field($ret, $this->name, $field, $field, $spec);
 
-    // @todo: test for success first.
-    $schema = $this->table_schema;
-    $schema['fields'][$field] = $spec;
-    $this->update(array('table_schema' => $schema));
-
-    drupal_get_schema($this->name, TRUE);
+    if ($ret[0]['success']) {
+      $schema = $this->table_schema;
+      $schema['fields'][$field] = $spec;
+      $this->update(array('table_schema' => $schema));
+  
+      drupal_get_schema($this->name, TRUE);
+      return TRUE;
+    }
+    return FALSE;
   }
 
   /**
@@ -500,14 +515,17 @@ class DataTable {
     $ret = array();
     db_drop_field($ret, $this->name, $field);
 
-    // @todo: test for success first.
-    $schema = $this->table_schema;
-    unset($schema['fields'][$field]);
-    $meta = $this->meta;
-    unset($meta['fields'][$field]);
-    $this->update(array('table_schema' => $schema), array('meta' => $meta));
-
-    drupal_get_schema($this->name, TRUE);
+    if ($ret[0]['success']) {
+      $schema = $this->table_schema;
+      unset($schema['fields'][$field]);
+      $meta = $this->meta;
+      unset($meta['fields'][$field]);
+      $this->update(array('table_schema' => $schema), array('meta' => $meta));
+  
+      drupal_get_schema($this->name, TRUE);
+      return TRUE;
+    }
+    return FALSE;
   }
 
   /**
