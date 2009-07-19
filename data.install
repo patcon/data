@@ -45,7 +45,7 @@ function data_schema() {
     'fields' => array(
       'left_table' => array(
         'type' => 'varchar',
-        'length' => '255',
+        'length' => '128',
         'not null' => TRUE,
         'default' => '',
         'description' => 'Left table.',
@@ -59,7 +59,7 @@ function data_schema() {
       ),
       'right_table' => array(
         'type' => 'varchar',
-        'length' => '255',
+        'length' => '128',
         'not null' => FALSE,
         'default' => '',
         'description' => 'Right table.',
