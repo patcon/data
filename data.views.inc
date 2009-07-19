@@ -58,7 +58,7 @@ function data_views_data() {
     }
 
     // Tables with a primary key are base tables.
-    if (isset($table_schema['primary key']) && count($table_schema['primary key']) >= 1) {
+    if (isset($schema['primary key']) && count($schema['primary key']) >= 1) {
       $table_data['table']['base'] = array(
         'field' => current($schema['primary key']),
         'title' => $table->get('title'),

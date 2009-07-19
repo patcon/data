@@ -486,6 +486,43 @@ class DataTable {
   }
 
   /**
+   * Drop an index from a table.
+   */
+  public function dropIndex($field) {
+    $ret = array();
+    db_drop_index($ret, $this->name, $field);
+    if ($ret[0]['success']) {
+      $schema = $this->table_schema;
+      if (isset($schema['indexes'][$field])) {
+        unset($schema['indexes'][$field]);
+      }
+      $this->update(array('table_schema' => $schema));
+      drupal_get_schema($this->name, TRUE);
+    }
+  }
+
+  /**
+   * Change indexes of a table.
+   */
+  public function changeIndex($fields) {
+    $schema = $this->table_schema;
+
+    // @TODO: This array_keys() reduces indexes to single field indexes.
+    // Will need adjustment when multi-field indexes are implemented.
+    $indexes = isset($schema['indexes']) ? array_keys($schema['indexes']) : array();
+
+    $add = array_diff($fields, $indexes);
+    $drop = array_diff($indexes, $fields);
+
+    foreach ($add as $field) {
+      $this->addIndex($field);
+    }
+    foreach ($drop as $field) {
+      $this->dropIndex($field);
+    }
+  }
+
+  /**
    * Add a primary key to table.
    */
   public function addPrimaryKey($fields) {
@@ -496,6 +533,33 @@ class DataTable {
       $schema['primary key'] = $fields;
       $this->update(array('table_schema' => $schema));
       drupal_get_schema($this->name, TRUE);
+    }
+  }
+
+  /**
+   * Drop all primary keys from a table.
+   */
+  public function dropPrimaryKey() {
+    $ret = array();
+    db_drop_primary_key($ret, $this->name);
+    if ($ret[0]['success']) {
+      $schema = $this->table_schema;
+      $schema['primary key'] = array();
+      $this->update(array('table_schema' => $schema));
+      drupal_get_schema($this->name, TRUE);
+    }
+  }
+
+  /**
+   * Change the primary keys of a table.
+   */
+  public function changePrimaryKey($fields) {
+    $schema = $this->table_schema;
+    if (!empty($schema['primary key'])) {
+      $this->dropPrimarykey();
+    }
+    if (!empty($fields)) {
+      $this->addPrimaryKey($fields);
     }
   }
 

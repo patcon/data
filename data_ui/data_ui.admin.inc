@@ -122,7 +122,7 @@ function data_ui_add_form_submit($form, &$form_state) {
       }
     }
     $schema['indexes'] = $index;
-    $schema['primary keys'] = $primary;
+    $schema['primary key'] = $primary;
     if ($table = data_create_table(data_name(trim($form_state['storage']['name'])), $schema, trim($form_state['storage']['title']))) {
       drupal_set_message(t('Created table !table', array('!table' => $table->get('name'))));
     }
@@ -200,11 +200,11 @@ function data_ui_edit_form(&$form_state, $table) {
       );
       $form['fields'][$field_name]['index'] = array(
         '#type' => 'checkbox',
-        '#default_value' => isset($schema['indexes'][$field_name]), // @todo
+        '#default_value' => isset($schema['indexes'][$field_name]),
       );
       $form['fields'][$field_name]['primary'] = array(
         '#type' => 'checkbox',
-        '#default_value' => in_array($field_name, $schema['primary keys']),
+        '#default_value' => isset($schema['primary key']) ? in_array($field_name, $schema['primary key']) : FALSE,
       );
     }
   }
@@ -248,6 +248,9 @@ function data_ui_edit_form_submit($form, &$form_state) {
     $fields = $schema['fields'];
     $new_fields = $form_state['values']['fields'];
 
+    $new_index = array();
+    $new_primary_key = array();
+
     if (empty($form_state['values']['bulk_operation']) && isset($fields)) {
 
       // Convert schema.
@@ -256,8 +259,16 @@ function data_ui_edit_form_submit($form, &$form_state) {
           $table->changeField($field_name, $new_spec);
           drupal_set_message(t('Changed field !field_name', array('!field_name' => $field_name)));
         }
+        if ($new_fields[$field_name]['index']) {
+          $new_index[] = $field_name;
+        }
+        if ($new_fields[$field_name]['primary']) {
+          $new_primary_key[] = $field_name;
+        }
       }
-    
+      $table->changeIndex($new_index);
+      $table->changePrimaryKey($new_primary_key);
+
       // Update meta data.
       $meta = $table->get('meta');
       foreach ($new_fields as $field_name => $field) {
