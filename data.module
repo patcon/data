@@ -687,13 +687,11 @@ class DataTable {
 
   /**
    * Delete from data table.
-   * @todo:
-   * Does not handle different column types.
    */
   public function delete($keys) {
     $where = $values = array();
     foreach ($keys as $key => $value) {
-      $where[] = db_escape_string($key) .' = "%s"';
+      $where[] = db_escape_string($key) ." = ". db_type_placeholder($fields[$key]['type']);
       $values[] = $value;
     }
     if (!empty($where)) {
