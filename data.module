@@ -642,14 +642,16 @@ class DataTable {
 
   /**
    * Load a record.
-   * @todo:
-   * Does not handle different column types.
    */
   public function load($keys) {
     $where = $values = array();
+    $fields = $this->table_schema['fields'];
     foreach ($keys as $key => $value) {
-      // @todo: pick escape sequence depending on type.
-      $where[] = db_escape_string($key) .' = "%s"';
+      // Return if a key does not exist.
+      if (!isset($fields[$key]['type'])) {
+        return FALSE;
+      }
+      $where[] = db_escape_string($key) ." = ". db_type_placeholder($fields[$key]['type']);
       $values[] = $value;
     }
 
@@ -661,6 +663,7 @@ class DataTable {
       }
       return count($results) ? $results : FALSE;
     }
+    return FALSE;
   }
 
   /**
