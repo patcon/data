@@ -87,7 +87,7 @@ function _data_get_table($name, $schema = NULL, $title = NULL, $reset = FALSE) {
     unset($tables[$name]);
   }
 
-  if (!isset($tables[$table])) {
+  if (!isset($tables[$name])) {
     if (db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $name))) {
       $tables[$name] = new $class($name);
     }

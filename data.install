@@ -90,7 +90,7 @@ function data_schema() {
     ),
   );
   // Load dynamically created tables.
-  if (function_exists('data_get_schema')) {
+  if (db_table_exists('data_tables')) {
     $schema += data_get_schema();
   }
   return $schema;

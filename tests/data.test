@@ -1,0 +1,114 @@
+<?php
+// $Id$
+
+/**
+ * Test basic Data API functionality.
+ */
+class DataTestCase extends DrupalWebTestCase {
+
+  /**
+   * Describe this test.
+   */
+  public function getInfo() {
+    return array(
+      'name' => t('Data API'),
+      'description' => t('Unit tests for Data module\'s API'),
+      'group' => t('Data'),
+    );
+  }
+
+  /**
+   * Set up test.
+   */
+  public function setUp() {
+    parent::setUp('data');
+  }
+
+  /**
+   * Run CRUD tests.
+   */
+  public function testCRUD() {
+    // Create table.
+    $table_name = data_name($this->randomName(5, 'crud'));
+    if (!$table = data_create_table($table_name, $this->testSchema())) {
+      $this->error('Could not create table');
+    }
+    else {
+      $this->assertTrue(1, 'Created table '. $table_name);
+    }
+
+    // Save data.
+    $test_data = $this->testData();
+    $table->save($test_data[0], array('id'));
+    $table->save($test_data[1], array('id'));
+    $table->save($test_data[1], array('id'));
+    $record_num = db_result(db_query('SELECT COUNT(*) FROM {'. $table_name .'}'));
+    
+    $result = db_query('SELECT * FROM {'. $table_name .'}');
+    while ($row = db_fetch_array($result)) {
+      $rows[] = $row;
+    }
+
+    // Load second record.
+    $data = $table->load(array('id' => 1));
+    $this->assertEqual($data[0], $test_data[1], 'Loaded data matches saved data.');
+
+    // Manipulate second record, save and load.
+    $data[0]['char0'] = 'test';
+    $table->save($data[0], array('id'));
+    $data = $table->load(array('id' => 1));
+    $this->assertEqual($data[0]['char0'], 'test', 'Saved data matches changed data.');
+
+    // Delete table.
+    data_drop_table($table_name);
+    $this->assertFalse(db_table_exists($table_name), 'Dropped table.');
+  }
+
+  /**
+   * Return a test schema.
+   */
+  protected function testSchema() {
+    return array(
+      'fields' => array(
+        'id' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ),
+        'char0' => array(
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => FALSE,
+          'default' => '',
+        ),
+        'char1' => array(
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => FALSE,
+          'default' => '',
+        ),
+      ),
+      'indexes' => array(
+        'id' => array('id'),
+       ),
+    );
+  }
+
+  /**
+   * Test data.
+   */
+  protected function testData() {
+    return array(
+      0 => array(
+        'id' => 0,
+        'char0' => 'test00',
+        'char1' => 'test01',
+      ),
+      1 => array(
+        'id' => 1,
+        'char0' => 'test10',
+        'char1' => 'test11',
+      ),
+    );
+  }
+}
