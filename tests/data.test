@@ -31,7 +31,7 @@ class DataTestCase extends DrupalWebTestCase {
     // Create table.
     $table_name = data_name($this->randomName(5, 'crud'));
     if (!$table = data_create_table($table_name, $this->testSchema())) {
-      $this->error('Could not create table');
+      $this->error('Could not create table.');
     }
     else {
       $this->assertTrue(1, 'Created table '. $table_name);
@@ -58,6 +58,21 @@ class DataTestCase extends DrupalWebTestCase {
     $table->save($data[0], array('id'));
     $data = $table->load(array('id' => 1));
     $this->assertEqual($data[0]['char0'], 'test', 'Saved data matches changed data.');
+
+    $data = $table->load(array('char0' => 'test'));
+    $this->assertEqual($data[0]['id'], 1, 'Loaded data by string type key.');
+
+    // Delete table.
+    data_drop_table($table_name);
+    $this->assertFalse(db_table_exists($table_name), 'Dropped table.');
+
+    // Create table and drop it again.
+    if (!$table = data_create_table($table_name, $this->testSchema())) {
+      $this->error('Could not create table with same name.');
+    }
+    else {
+      $this->assertTrue(1, 'Created table with same name '. $table_name);
+    }
 
     // Delete table.
     data_drop_table($table_name);
