@@ -1,4 +1,5 @@
 <?php
+// $Id$
 
 /**
  * Manages data access and manipulation for a single data table.
