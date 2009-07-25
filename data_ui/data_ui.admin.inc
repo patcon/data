@@ -25,7 +25,7 @@ function data_ui_overview() {
 /**
  * Form callback for add table form.
  */
-function data_ui_add_form(&$form_state) {
+function data_ui_create_form(&$form_state) {
   $form = array();
   if (!$form_state['storage']['field_num']) {
     $form['name'] = array(
@@ -70,7 +70,7 @@ function data_ui_add_form(&$form_state) {
 /**
  * Validate handler for add table form.
  */
-function data_ui_add_form_validate($form, &$form_state) {
+function data_ui_create_form_validate($form, &$form_state) {
   if (data_get_table(data_name($form_state['values']['name']))) {
     form_set_error('name', t('Name is already taken.')); 
   }
@@ -104,7 +104,7 @@ function data_ui_add_form_validate($form, &$form_state) {
 /**
  * Submit handler for add table form.
  */
-function data_ui_add_form_submit($form, &$form_state) {
+function data_ui_create_form_submit($form, &$form_state) {
 
   if (isset($form_state['values']['field_num'])) {
     $form_state['storage'] = $form_state['values'];
@@ -319,9 +319,9 @@ function data_ui_edit_form_submit($form, &$form_state) {
 }
 
 /**
- * Theme data_ui_add_form.
+ * Theme data_ui_create_form.
  */
-function theme_data_ui_add_form($form) {
+function theme_data_ui_create_form($form) {
 
   // Render field definition form elements in a table.
   if (isset($form['fields'])) {

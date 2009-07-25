@@ -17,7 +17,7 @@ function data_ui_menu() {
     'title' => 'Create a table',
     'description' => 'Create a data table.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('data_ui_add_form'),
+    'page arguments' => array('data_ui_create_form'),
     'file' => 'data_ui.admin.inc',
     'access arguments' => array('administer data tables'),
     'type' => MENU_CALLBACK, 
