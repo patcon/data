@@ -59,6 +59,7 @@ class DataTestCase extends DrupalWebTestCase {
     $data = $table->load(array('id' => 1));
     $this->assertEqual($data[0]['char0'], 'test', 'Saved data matches changed data.');
 
+    // Load a record by string.
     $data = $table->load(array('char0' => 'test'));
     $this->assertEqual($data[0]['id'], 1, 'Loaded data by string type key.');
 
