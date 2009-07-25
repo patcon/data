@@ -74,41 +74,6 @@ function data_drop_table($name) {
 }
 
 /**
- * Internal singleton/factory function for creating a single instance of a DataTable class.
- * 
- * Don't use this function directly. Call data_create_table() or data_get_table() instead.
- * 
- * If a schema is given, _data_get_table() creates the table objects DB structure.
- * 
- * The purpose of this function is to make sure that 
- * 
- * a) there is only a single DataTable object for accessing a specific DataTable.
- * b) there is no DataTable object that does not have an existing table.
- */
-function _data_get_table($name, $schema = NULL, $title = NULL, $reset = FALSE) {
-  _data_include();
-
-  static $tables;
-  // Simple way of having a way to override the class being used. 
-  // This could be refined with a $type parameter in _data_get_table() and depending
-  // functions.
-  $class = variable_get('data_table_class', 'DataTable');
-  if ($reset) {
-    unset($tables[$name]);
-  }
-
-  if (!isset($tables[$name])) {
-    if (db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $name))) {
-      $tables[$name] = new $class($name);
-    }
-  }
-  if ($schema) {
-    $tables[$name] = new $class($name, $schema, $title);
-  }
-  return isset($tables[$name]) ? $tables[$name] : FALSE;
-}
-
-/**
  * Get schema info for all data allocated tables.
  */
 function data_get_schema() {
@@ -307,6 +272,41 @@ function data_build_field_definition($stub) {
     $spec['length'] = 255;
   }
   return $spec;
+}
+
+/**
+ * Internal singleton/factory function for creating a single instance of a DataTable class.
+ * 
+ * Don't use this function directly. Call data_create_table() or data_get_table() instead.
+ * 
+ * If a schema is given, _data_get_table() creates the table objects DB structure.
+ * 
+ * The purpose of this function is to make sure that 
+ * 
+ * a) there is only a single DataTable object for accessing a specific DataTable.
+ * b) there is no DataTable object that does not have an existing table.
+ */
+function _data_get_table($name, $schema = NULL, $title = NULL, $reset = FALSE) {
+  _data_include();
+
+  static $tables;
+  // Simple way of having a way to override the class being used. 
+  // This could be refined with a $type parameter in _data_get_table() and depending
+  // functions.
+  $class = variable_get('data_table_class', 'DataTable');
+  if ($reset) {
+    unset($tables[$name]);
+  }
+
+  if (!isset($tables[$name])) {
+    if (db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $name))) {
+      $tables[$name] = new $class($name);
+    }
+  }
+  if ($schema) {
+    $tables[$name] = new $class($name, $schema, $title);
+  }
+  return isset($tables[$name]) ? $tables[$name] : FALSE;
 }
 
 /**
