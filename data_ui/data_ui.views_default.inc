@@ -6,7 +6,7 @@
  */
 
 /**
- * Implementation of hook_default_view_views().
+ * Implementation of hook_views_default_views().
  */
 function data_ui_views_default_views() {
   $views = array();
