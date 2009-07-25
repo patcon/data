@@ -22,6 +22,8 @@ function data_views_api() {
  * $table = data_create_table('my_table', $schema, 'My table');
  * $table->save($data);
  * 
+ * @see DataTable class.
+ * 
  * @param $name
  *   String that identifies the data table. It is recommended to use 
  *   data_name() to generate a table name in the data namespace. For
@@ -44,7 +46,9 @@ function data_create_table($name, $schema, $title = NULL) {
 
 /**
  * Get a table if it exists.
- *
+ * 
+ * @see DataTable class.
+ * 
  * @param $name
  *   Unique name of the table.
  * 
