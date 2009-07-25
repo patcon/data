@@ -1,14 +1,6 @@
 <?php
 // $Id$
 
-// Adjustment modes.
-// Only use existing storage. This is default behavior and defined for consistency.
-define('DATA_UPDATE', 'update');
-// @todo: Expand data store if it differs.
-define('DATA_EXPAND', 'expand'); 
-// @todo: Expand or contract data store if it differs.
-define('DATA_EXPAND_CONTRACT', 'expand_contract');
-
 /**
  * Implementation of hook_views_api().
  */
