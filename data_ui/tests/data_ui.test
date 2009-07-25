@@ -49,8 +49,6 @@ class DataTestCaseUI extends DataTestCase {
 
   /**
    * Create a table.
-   * 
-   * @todo: verify schema in DB.
    */
   protected function createTable($num_fields = 5) {
     $table_name = $this->randomName();
