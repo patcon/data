@@ -1,9 +1,16 @@
 <?php
 // $Id$
+/**
+ * @file
+ * Contains class definition for DataTable.
+ */
 
 /**
  * Manages data access and manipulation for a single data table.
- * Use data_allocate_table() or data_get_table() to instantiate an object from this class.
+ * Use data_create_table() or data_get_table() to instantiate an object from this class.
+ * 
+ * @see data_create_table().
+ * @see data_get_table().
  * 
  * Usage:
  * 

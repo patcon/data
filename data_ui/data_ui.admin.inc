@@ -1,5 +1,9 @@
 <?php
 // $Id$
+/**
+ * @file
+ * Admin UI functions.
+ */
 
 /**
  * Overview over all tables.
