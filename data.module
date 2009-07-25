@@ -262,13 +262,6 @@ function data_natural_name($name) {
 }
 
 /**
- * Creates the default path for a data table.
- */
-function data_get_default_path($name) {
-  return 'admin/content/data/'. $name;
-}
-
-/**
  * Helper function to generate a schema.
  * 
  * Example:

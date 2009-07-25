@@ -79,3 +79,22 @@ function data_ui_theme() {
 function data_ui_perm() {
   return array('administer data tables');
 }
+
+/**
+ * Creates the default path for a data table.
+ */
+function data_ui_get_default_path($name) {
+  if ($table = data_get_table($name)) {
+    // Check, whether there is a data mananged table to the left.
+    // @todo: go all the way to the left.
+    $path = '';
+    if ($links = $table->get('links')) {
+      $left_table_name = key($links);
+      if ($left_table = data_get_table($left_table_name)) {
+        $path .= $left_table_name .'/';
+      }
+    }
+    return 'admin/content/data/view/'. $path . $name;
+  }
+  return '';
+}
