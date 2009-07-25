@@ -23,7 +23,7 @@ function data_ui_overview() {
 }
 
 /**
- * Form callback for add table form.
+ * Form callback for create table form.
  */
 function data_ui_create_form(&$form_state) {
   $form = array();
@@ -68,7 +68,7 @@ function data_ui_create_form(&$form_state) {
 }
 
 /**
- * Validate handler for add table form.
+ * Validate handler for create table form.
  */
 function data_ui_create_form_validate($form, &$form_state) {
   if (data_get_table(data_name($form_state['values']['name']))) {
@@ -102,7 +102,7 @@ function data_ui_create_form_validate($form, &$form_state) {
 }
 
 /**
- * Submit handler for add table form.
+ * Submit handler for create table form.
  */
 function data_ui_create_form_submit($form, &$form_state) {
 
