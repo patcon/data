@@ -105,30 +105,38 @@ function data_ui_add_form_validate($form, &$form_state) {
  * Submit handler for add table form.
  */
 function data_ui_add_form_submit($form, &$form_state) {
+
   if (isset($form_state['values']['field_num'])) {
     $form_state['storage'] = $form_state['values'];
   }
   elseif (isset($form_state['values']['fields'])) {
 
     // Create a schema from user input.
-    $schema = $index = $primary = array();
+    $schema = $index = $primary = $meta = array();
     foreach ($form_state['values']['fields'] as $field) {
-      $schema['fields'][$field['name']] = data_build_field_spec($field);
+      $schema['fields'][$field['name']] = data_build_field_definition($field);
+      $meta['fields'][$field['name']]['label'] = $field['label'];
+
+      // Limit index if field type is text.
       if (!empty($field['index'])) {
-        $index[$field['name']] = array($field['name']);
+        $index[$field['name']] = data_get_index_definition($field['name'], $field['type']);
       }
       if (!empty($field['primary'])) {
-        $primary[] = $field['name'];
+        $primary[] = data_get_pk_definition($field['name'], $field['type']);
       }
     }
     $schema['indexes'] = $index;
     $schema['primary key'] = $primary;
+
+    // Create table.
     if ($table = data_create_table(data_name(trim($form_state['storage']['name'])), $schema, trim($form_state['storage']['title']))) {
+      $meta = $table->update(array('meta' => $meta));
       drupal_set_message(t('Created table !table', array('!table' => $table->get('name'))));
     }
     else {
       drupal_set_message(t('Error creating table'), 'error');
     }
+
     // Unset storage to enable redirect.
     unset($form_state['storage']);
     $form_state['redirect'] = 'admin/content/data';
@@ -191,7 +199,7 @@ function data_ui_edit_form(&$form_state, $table) {
       );
       $form['fields'][$field_name]['type'] = array(
         '#type' => 'select',
-        '#options' => drupal_map_assoc(array('int', 'varchar', 'text')),
+        '#options' => data_get_field_types(),
         '#default_value' => $field['type'],
       );
       $form['fields'][$field_name]['unsigned'] = array(
@@ -299,7 +307,7 @@ function data_ui_edit_form_submit($form, &$form_state) {
   }
   elseif ($form_state['clicked_button']['#value'] == t('Add new')) {
     $new = $form_state['values']['new'];
-    $spec = data_build_field_spec($new);
+    $spec = data_build_field_definition($new);
     $table->addField($new['name'], $spec);
     if (!empty($new['index'])) {
       $table->addIndex($new['name']);
@@ -406,7 +414,7 @@ function _data_ui_field_form($required = FALSE) {
   );
   $form['type'] = array(
     '#type' => 'select',
-    '#options' => drupal_map_assoc(array('int', 'varchar', 'text')),
+    '#options' => data_get_field_types(),
   );
   $form['unsigned'] = array(
     '#type' => 'checkbox',

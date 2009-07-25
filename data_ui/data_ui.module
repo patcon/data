@@ -73,7 +73,6 @@ function data_ui_theme() {
   );
 }
 
-
 /**
  * Implementation of hook_perm().
  */

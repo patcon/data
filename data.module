@@ -76,12 +76,20 @@ function data_drop_table($name) {
 /**
  * Internal singleton/factory function for creating a single instance of a DataTable class.
  * 
+ * Don't use this function directly. Call data_create_table() or data_get_table() instead.
+ * 
  * If a schema is given, _data_get_table() creates the table objects DB structure.
  * 
- * Don't use this function directly. Call data_create_table() or data_get_table() instead.
+ * The purpose of this function is to make sure that 
+ * 
+ * a) there is only a single DataTable object for accessing a specific DataTable.
+ * b) there is no DataTable object that does not have an existing table.
  */
 function _data_get_table($name, $schema = NULL, $title = NULL, $reset = FALSE) {
   static $tables;
+  // Simple way of having a way to override the class being used. 
+  // This could be refined with a $type parameter in _data_get_table() and depending
+  // functions.
   $class = variable_get('data_table_class', 'DataTable');
   if ($reset) {
     unset($tables[$name]);
@@ -126,13 +134,13 @@ function data_get_all_tables() {
 }
 
 /**
- * Get a list of available, simplified field types.
+ * Get a list of supported field definitions.
  * 
  * This list is a sub set of Schema API data types 
  * http://drupal.org/node/159605
  * The keys are simplified handles.
  */
-function data_get_field_types() {
+function data_get_field_definitions() {
   return array(
     'int' => array(
       'type' => 'int',
@@ -156,16 +164,53 @@ function data_get_field_types() {
 }
 
 /**
- * Translate a simplified handle into a schema API type definition.
+ * Get a definition key into a schema API type definition.
  * 
  * If no type can be found, FALSE will be returned.
  */
-function data_translate_field_type($type) {
-  $types = data_get_field_types();
-  if (isset($types[$type])) {
-    return $types[$type];
+function data_get_field_definition($key) {
+  $definitions = data_get_field_definitions();
+  if (isset($definitions[$key])) {
+    return $definitions[$key];
   }
   return FALSE;
+}
+
+/**
+ * Get schema API field types supported by Data module.
+ */
+function data_get_field_types() {
+  $definitions = data_get_field_definitions();
+  $types = array();
+  foreach ($definitions as $def) {
+    $types[$def['type']] = $def['type'];
+  }
+  return $types;
+}
+
+/**
+ * Get a Schema API PK definition for a given field type.
+ */
+function data_get_pk_definition($name, $type) {
+  if ($type == 'text') {
+    return array($name, 255);
+  }
+  else {
+    return $name;
+  }
+}
+
+/**
+ * Get a Schema API index definition for a given field type.
+ * @todo: support multiple name/type combinations.
+ */
+function data_get_index_definition($name, $type) {
+  if ($type == 'text') {
+    return array(array($name, 255));
+  }
+  else {
+    return array($name);
+  }
 }
 
 /**
@@ -234,17 +279,15 @@ function data_get_default_path($name) {
  * @todo: may be add option to add a full fledged schema here?
  */
 function data_build_schema($keys) {
-  $fields = $schema = array();
-  $field_types = data_get_field_types();
-
   // Build the table definition.
   // Fall back to varchar if no valid type is given.
-  foreach ($keys as $k => $type) {
-    if ($type = data_translate_field_type($type)) {
-      $fields[data_safe_name($k)] = $type;
+  $fields = $schema = array();
+  foreach ($keys as $k => $key) {
+    if ($definition = data_get_field_definition($key)) {
+      $fields[data_safe_name($k)] = $definition;
     }
     else {
-      $fields[data_safe_name($k)] = $field_types['varchar'];
+      $fields[data_safe_name($k)] = data_get_field_definition('varchar');
     }
   }
 
@@ -254,12 +297,12 @@ function data_build_schema($keys) {
 }
 
 /**
- * Build a full schema api field spec.
+ * Build a full schema api field definition.
  * 
  * @param $stub
  *   Array with at least one key 'type'.
  */
-function data_build_field_spec($stub) {
+function data_build_field_definition($stub) {
   $spec = array();
   $spec['type'] = $stub['type'];
   if ($spec['type'] == 'int') {

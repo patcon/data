@@ -28,11 +28,159 @@ class DataTestCaseUI extends DataTestCase {
    */
   public function setUp() {
     parent::setUp('data', 'data_ui');
+    
+    $this->drupalLogin(
+      $this->drupalCreateUser(
+        array(
+          'administer data tables',
+        )
+      )
+    );
   }
 
   /**
-   * Run admin UI tests.
+   * CRUD table tests on UI.
    */
-  public function testAdminUI() {
+  public function testCRUDTable() {
+    $table_name = $this->createTable(5);
+    // @todo: edit table.
+    $this->dropTable($table_name);
+  }
+
+  /**
+   * Create a table.
+   * 
+   * @todo: verify schema in DB.
+   */
+  protected function createTable($num_fields = 5) {
+    $table_name = $this->randomName();
+    $edit = array(
+      'name' => $table_name,
+      'title' => 'My table',
+      'field_num' => $num_fields
+      );
+    $this->drupalPost('admin/content/data/create', $edit, 'Next');
+    $this->assertText('Define the fields of the new table.');
+
+    $fields = $this->randomFields($num_fields);
+    $edit = $this->formatEditFields($fields);
+    $this->drupalPost(NULL, $edit, 'Create');
+    // Data UI has prefixed the table name.
+    $table_name = data_name($table_name);
+    $this->assertText('Created table '. $table_name);
+
+    // Test schema in DB.
+    // @todo: why do we need to clear the cache here?
+    if ($schema = drupal_get_schema($table_name, true)) {
+      foreach ($schema['primary key'] as $key) {
+        if (is_array($key)) {
+          $primary_keys[] = $key[0];
+        }
+        else {
+          $primary_keys[] = $key;
+        }
+      }
+      foreach ($schema['fields'] as $field_name => $field) {
+        $this->assertEqual($fields[$field_name]['type'], $field['type'], "Field $field_name has correct type.");
+        if ($field['type'] == 'int') {
+          $this->assertEqual(isset($fields[$field_name]['unsigned']), !empty($field['unsigned']) , "Field $field_name has correct unsigned value.");
+        }
+      }
+      foreach ($fields as $field_name => $config) {
+        if (isset($config['index'])) {
+          $this->assertTrue(isset($schema['indexes'][$field_name]), "Field $field_name indexed.");
+        }
+        if (isset($config['primary'])) {
+          $this->assertTrue(in_array($field_name, $primary_keys), "Field $field_name in primary key.");
+        }
+      }
+    }
+    else {
+      $this->assertTrue(FALSE, 'Could not create schema.');
+    }
+
+    return $table_name;
+  }
+
+  /**
+   * Drop a table.
+   */
+  protected function dropTable($table_name) {
+    $this->drupalPost('admin/content/data/'. $table_name .'/drop', array(), 'Drop');
+    $exists = db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $table_name));
+    $this->assertFalse($exists, 'Table removed from data_tables table.');
+    $this->assertFalse(drupal_get_schema($table_name, true), 'Table '. $table_name .' removed from schema API.');
+    $this->assertFalse(db_table_exists($table_name), 'Table '. $table_name .' removed from DB.');
+  }
+
+  /**
+   * Format an edit array from the result of randomFields().
+   */
+  protected function formatEditFields($fields) {
+    $edit = array();
+    $fields = array_values($fields);
+    foreach ($fields as $i => $field) {
+      foreach ($field as $k => $v) {
+        $edit["fields[field_$i][$k]"] = $v;
+      }
+    }
+    return $edit;
+  }
+
+  /**
+   * Generate N random fields. Will create at least 1 field.
+   */
+  protected function randomFields($n = 5) {
+    $fields = array();
+    for ($i = 0; $i < $n-1; $i++) {
+      $label = $this->uniqueRandomName();
+      $name = data_safe_name($label);
+      $fields[$name] = array(
+        'name' => $name,
+        'label' => $label,
+        'type' => $this->randomValue(data_get_field_types()),
+      );
+      if (rand(0, 1)) {
+        $fields[$name]['unsigned'] = 1;
+      }
+      if (rand(0, 1)) {
+        $fields[$name]['index'] = 1;
+      }
+      if (rand(0, 1)) {
+        $fields[$name]['primary'] = 1;
+      }
+    }
+    // Make sure we have at least one field that is text, PK and indexed.
+    $name = $this->uniqueRandomName();
+    $fields[data_safe_name($name)] = array(
+      'name' => data_safe_name($name),
+      'label' => $name,
+      'type' => 'text',
+      'index' => 1,
+      'primary' => 1,
+    );
+
+    return $fields;
+  }
+
+  /**
+   * Get a random value from the given array.
+   */
+  protected function randomValue($array) {
+    $array = array_values($array);
+    return $array[rand(0, count($array) - 1)];
+  }
+
+  /**
+   * Create a _unique_ random name.
+   */
+  protected function uniqueRandomName() {
+    static $names;
+    do {
+      $name = $this->randomName();
+    }
+    while (isset($names[$name]));
+    $names[$name] = $name;
+    return $name;
   }
 }
