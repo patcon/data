@@ -4,7 +4,7 @@
 /**
  * Implementation of hook_menu()
  */
-function data_ui_menu(){
+function data_ui_menu() {
   $items = array();
   $items['admin/content/data'] = array(
     'title' => 'Data tables',
