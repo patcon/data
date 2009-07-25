@@ -1,0 +1,38 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Data UI tests.
+ */
+
+require_once(drupal_get_path('module', 'data') .'/tests/data.test.inc');
+
+/**
+ * Test basic Data API functionality.
+ */
+class DataTestCaseUI extends DataTestCase {
+
+  /**
+   * Describe this test.
+   */
+  public function getInfo() {
+    return array(
+      'name' => t('Data UI'),
+      'description' => t('Tests Data UI module\'s GUI.'),
+      'group' => t('Data'),
+    );
+  }
+
+  /**
+   * Set up test.
+   */
+  public function setUp() {
+    parent::setUp('data', 'data_ui');
+  }
+
+  /**
+   * Run admin UI tests.
+   */
+  public function testAdminUI() {
+  }
+}
