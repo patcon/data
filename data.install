@@ -1,5 +1,9 @@
 <?php
 // $Id$
+/**
+ * @file
+ * Install hooks for Data module.
+ */
 
 /**
  * Implementation of hook_schema().
