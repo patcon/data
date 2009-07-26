@@ -44,6 +44,24 @@ function data_ui_menu() {
     'access arguments' => array('administer data tables'),
     'type' => MENU_CALLBACK, 
   );
+  $items['admin/content/data/revert/%data_ui_table'] = array(
+    'title' => 'Revert data table',
+    'description' => 'Administer data tables.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('data_ui_revert_form', 4),
+    'file' => 'data_ui.admin.inc',
+    'access arguments' => array('administer data tables'),
+    'type' => MENU_CALLBACK, 
+  );
+  $items['admin/content/data/export/%data_ui_table'] = array(
+    'title' => 'Data table',
+    'description' => 'Export data table.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('data_ui_export_form', 4),
+    'file' => 'data_ui.admin.inc',
+    'access arguments' => array('administer data tables'),
+    'type' => MENU_CALLBACK, 
+  );
   return $items;
 }
 

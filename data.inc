@@ -39,7 +39,7 @@ class DataTable {
   // @todo: change $table_schema to $schema.
   // @todo: change $name to $id.
   // Unfortunately drupal_write_record does not escape field names. $table_schema instead of $schema it is.
-  protected $name, $title, $table_schema, $meta;
+  protected $name, $title, $table_schema, $meta, $export_type;
 
   /**
    * Constructor.
@@ -66,12 +66,9 @@ class DataTable {
    * Load DataTable data from DB.
    */
   protected function init($name) {
-    if ($table = db_fetch_object(db_query('SELECT * FROM {data_tables} WHERE name = "%s"', $name))) {
-      foreach (array('title', 'name') as $key) {
+    if ($table = _data_load_table($name)) {
+      foreach (array('title', 'name', 'table_schema', 'meta', 'export_type') as $key) {
         $this->$key = $table->$key;
-      }
-      foreach (array('table_schema', 'meta') as $key) {
-        $this->$key = unserialize($table->$key);
       }
       return TRUE;
     }
@@ -107,7 +104,7 @@ class DataTable {
    *   The unserialized value of the property.
    */
   public function get($property) {
-    if (in_array($property, array('name', 'title', 'table_schema', 'meta'))) {
+    if (in_array($property, array('name', 'title', 'table_schema', 'meta', 'export_type'))) {
       return $this->$property;
     }
     // Links aren't loaded automatically.
@@ -129,6 +126,7 @@ class DataTable {
    *   and the value is the unserialized value that this property should attain.
    */
   public function update($properties) {
+    _data_override($this->name);
     $properties['name'] = $this->name;
     if (drupal_write_record('data_tables', $properties, 'name')) {
       foreach ($properties as $key => $value) {
@@ -341,15 +339,40 @@ class DataTable {
   /**
    * Drop a table. Don't call this function directly, but
    * use data_drop_table() instead.
+   * 
+   * Does not drop a table if its defined in code.
+   * 
+   * @return 
+   *   TRUE if the table was dropped, FALSE otherwise.
    */
   public function drop() {
-    db_drop_table($ret, $this->name);
-    $this->update(array('table_schema' => array()));
-    drupal_get_schema($this->name, TRUE);
+    if ($this->export_type == EXPORT_IN_DATABASE || $this->export_type == DATA_EXPORT_UNDEFINED) {
+      db_drop_table($ret, $this->name);
+      $this->update(array('table_schema' => array()));
+      drupal_get_schema($this->name, TRUE);
+  
+      db_query('DELETE FROM {data_tables} WHERE name = "%s"', $this->name);
+      $this->title = '';
+      $this->table_schema = $this->meta = array();
+      return TRUE;
+    }
+    return FALSE;
+  }
 
-    db_query('DELETE FROM {data_tables} WHERE name = "%s"', $this->name);
-    $this->title = '';
-    $this->table_schema = $this->meta = array();
+  /**
+   * Revert a table to its definition in code.
+   * 
+   * Does not revert a table if it is not defined in code.
+   * 
+   * @return
+   *   TRUE if the table was reverted, FALSE otherwise.
+   */
+  public function revert() {
+    if ($this->export_type & EXPORT_IN_CODE) {
+      db_query('DELETE FROM {data_tables} WHERE name = "%s"', $this->name);
+      return TRUE;
+    }
+    return FALSE;
   }
 
   /**

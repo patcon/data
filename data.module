@@ -5,6 +5,10 @@
  * Hooks and API functions for data module.
  */
 
+// Constant designating an undefined export state.
+// Used in absence of EXPORT_IN_CODE, EXPORT_IN_DATABASE
+define('DATA_EXPORT_UNDEFINED', 0);
+
 /**
  * Implementation of hook_views_api().
  */
@@ -12,6 +16,16 @@ function data_views_api() {
   return array(
     'api' => '2.0',
     'path' => drupal_get_path('module', 'data'),
+  );
+}
+
+/**
+ * Implementation of hook_features_api().
+ */
+function data_features_api() {
+  return array(
+    'default_hook' => 'data_default',
+    'file' => drupal_get_path('module', 'data') .'/data.features.inc',
   );
 }
 
@@ -38,7 +52,7 @@ function data_views_api() {
  *   FALSE if not.
  */
 function data_create_table($name, $schema, $title = NULL) {
-  if (_data_get_table($name)) {
+  if (_data_get_table($name, NULL, NULL, TRUE)) {
     return FALSE;
   }
   return _data_get_table($name, $schema, $title);
@@ -75,12 +89,14 @@ function data_drop_table($name) {
 
 /**
  * Get schema info for all data allocated tables.
+ * 
+ * Pull directly from database to avoid race conditions.
  */
 function data_get_schema() {
   $schema = array();
-  $tables = data_get_all_tables();
-  foreach ($tables as $table) {
-    $schema[$table->get('name')] = $table->get('table_schema');
+  $result = db_query('SELECT name, table_schema FROM {data_tables}');
+  while ($table = db_fetch_object($result)) {
+    $schema[$table->name] = unserialize($table->table_schema);
   }
   return $schema;
 }
@@ -90,13 +106,13 @@ function data_get_schema() {
  */
 function data_get_all_tables() {
   $tables = array();
-  $result = db_query('SELECT name FROM {data_tables}');
-  while ($row = db_fetch_object($result)) {
-    if ($table = data_get_table($row->name)) {
-      $tables[$row->name] = $table;
+  if ($tables = _data_load_table()) {
+    foreach ($tables as $table_name => $table) {
+      if ($table = data_get_table($table_name)) {
+        $tables[$table_name] = $table;
+      }
     }
   }
-  
   return $tables;
 }
 
@@ -275,6 +291,29 @@ function data_build_field_definition($stub) {
 }
 
 /**
+ * Export a data table. This does not export the content of a table - only its schema 
+ * and any meta information (title, name, meta...).
+ * 
+ * @param $name
+ *   The name of the table to be exported.
+ * 
+ * @return 
+ *   Exportable code. 
+ * 
+ * Only available if ctools is installed.
+ */
+function data_export($name, $indent = '') {
+  if (module_exists('ctools')) {
+    ctools_include('export');
+    $result = ctools_export_load_object('data_tables', 'names', array($name));
+    if (isset($result[$name])) {
+      return ctools_export_object('data_tables', $result[$name], $indent);
+    }
+  }
+  return t('Export requires CTools http://drupal.org/project/ctools');
+}
+
+/**
  * Internal singleton/factory function for creating a single instance of a DataTable class.
  * 
  * Don't use this function directly. Call data_create_table() or data_get_table() instead.
@@ -299,7 +338,8 @@ function _data_get_table($name, $schema = NULL, $title = NULL, $reset = FALSE) {
   }
 
   if (!isset($tables[$name])) {
-    if (db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $name))) {
+    // Try whether we can load table, then instantiate. Object will then load itself.
+    if (_data_load_table($name, $reset)) {
       $tables[$name] = new $class($name);
     }
   }
@@ -307,6 +347,58 @@ function _data_get_table($name, $schema = NULL, $title = NULL, $reset = FALSE) {
     $tables[$name] = new $class($name, $schema, $title);
   }
   return isset($tables[$name]) ? $tables[$name] : FALSE;
+}
+
+/**
+ * Loads data table info from the database. Uses CTools if available.
+ */
+function _data_load_table($name = NULL, $reset = FALSE) {
+  if (module_exists('ctools')) {
+    ctools_include('export');
+    if (empty($name)) {
+      return ctools_export_load_object('data_tables', 'all', array(), $reset);
+    }
+    else {
+      $tables = ctools_export_load_object('data_tables', 'names', array($name), $reset);
+      if (isset($tables[$name])) {
+        return $tables[$name];
+      }
+      return FALSE;
+    }
+  }
+  // If CTools is not available, load directly from DB.
+  if (empty($name)) {
+    $result = db_query('SELECT * FROM {data_tables}');
+    $tables = array();
+    while ($row = db_fetch_object($result)) {
+      foreach (array('table_schema', 'meta') as $key) {
+        $row->$key = unserialize($row->$key);
+      }
+      // No export type.
+      $row->export_type = DATA_EXPORT_UNDEFINED;
+      $tables[$row->name] = $row;
+    }
+    return $tables;
+  }
+  if ($table = db_fetch_object(db_query('SELECT * FROM {data_tables} WHERE name = "%s"', $name))) {
+      // No export type.
+      $table->export_type = DATA_EXPORT_UNDEFINED;
+      return $table;
+  }
+  return FALSE;
+}
+
+/**
+ * Starts overriding a data table by copying it from the default definition into the DB.
+ * This function does not have any effect if called on a table that does already exist in
+ * data_tables.
+ */
+function _data_override($name) {
+  if (!db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $name))) {
+    if ($table = _data_load_table($name)) {
+      drupal_write_record('data_tables', $table);
+    }
+  }
 }
 
 /**

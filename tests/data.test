@@ -27,7 +27,15 @@ class DataTestCaseAPI extends DataTestCase {
    * Set up test.
    */
   public function setUp() {
-    parent::setUp('data');
+    // Test with CTools enabled if available.
+    if (drupal_get_filename('module', 'ctools')) {
+      parent::setUp('ctools', 'data');
+      $this->assertTrue(1, 'Testing with Data module and CTools.');
+    }
+    else {
+      parent::setUp('data');
+      $this->assertTrue(1, 'Testing with Data module only (without CTools).');
+    }
   }
 
   /**
@@ -38,6 +46,7 @@ class DataTestCaseAPI extends DataTestCase {
     $table_name = data_name($this->randomName(5, 'crud'));
     if (!$table = data_create_table($table_name, $this->testSchema())) {
       $this->error('Could not create table.');
+      return;
     }
     else {
       $this->assertTrue(1, 'Created table '. $table_name);
@@ -74,12 +83,8 @@ class DataTestCaseAPI extends DataTestCase {
     $this->assertFalse(db_table_exists($table_name), 'Dropped table.');
 
     // Create table and drop it again.
-    if (!$table = data_create_table($table_name, $this->testSchema())) {
-      $this->error('Could not create table with same name.');
-    }
-    else {
-      $this->assertTrue(1, 'Created table with same name '. $table_name);
-    }
+    $table = data_create_table($table_name, $this->testSchema());
+    $this->assertTrue(!empty($table), 'Created table with same name '. $table_name);
 
     // Delete table.
     data_drop_table($table_name);

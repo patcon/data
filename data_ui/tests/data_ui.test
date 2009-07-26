@@ -44,6 +44,7 @@ class DataTestCaseUI extends DataTestCase {
   public function testCRUDTable() {
     $table_name = $this->createTable(5);
     // @todo: edit table.
+    $this->drupalGet('admin/content/data/export/'. $table_name);
     $this->dropTable($table_name);
   }
 

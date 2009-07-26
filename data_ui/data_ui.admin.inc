@@ -9,20 +9,41 @@
  * Overview over all tables.
  */
 function data_ui_overview() {
-  
   $tables = data_get_all_tables();
   $rows = array();
   foreach ($tables as $table) {
-    $rows[] = array(
-      $table->get('name'), 
-      l(t('Edit'), 'admin/content/data/edit/'. $table->get('name')) .' | '. l(t('Drop'), 'admin/content/data/'. $table->get('name') .'/drop'),
-    );
+    // Build operations depending on configuration status.
+    $operations = array();
+    if ($table->get('export_type') == EXPORT_IN_CODE) {
+      $status = t('Default');
+      $operations[] = l(t('Override'), 'admin/content/data/edit/'. $table->get('name'));
+    }
+    else if ($table->get('export_type') == (EXPORT_IN_CODE | EXPORT_IN_DATABASE)) {
+      $status = t('Overridden');
+      $operations[] = l(t('Edit'), 'admin/content/data/edit/'. $table->get('name'));
+      $operations[] = l(t('Revert'), 'admin/content/data/revert/'. $table->get('name'));
+    }
+    else {
+      $status = t('Normal');
+      $operations[] = l(t('Edit'), 'admin/content/data/edit/'. $table->get('name'));
+      $operations[] = l(t('Drop'), 'admin/content/data/'. $table->get('name') .'/drop');
+    }
+    if (module_exists('ctools')) {
+      $operations[] = l(t('Export'), 'admin/content/data/export/'. $table->get('name'));
+    }
+
+    $row = array();
+    $row[] = $table->get('name');
+    $row[] = $status;
+    $row[] = implode(' | ', $operations);
+
+    $rows[] = $row;
   }
   $rows[] = array(
     l(t('Create new table'), 'admin/content/data/create'),
     '&nbsp;',
   );
-  $header = array(t('Name'), t('Operations'));
+  $header = array(t('Name'), t('Status'), t('Operations'));
   return theme('table', $header, $rows);
 }
 
@@ -147,6 +168,29 @@ function data_ui_create_form_submit($form, &$form_state) {
   }
 }
 
+/**
+ * Form callback for revert table form.
+ */
+function data_ui_revert_form(&$form_state, $table) {
+  $form = array();
+  $form['#redirect'] = 'admin/content/data';
+  $form['#table'] = $table;
+
+  return confirm_form($form,
+    t('Revert this table?'),
+    'admin/content/data',
+    t('Are you sure you would like to revert table !table? This will reset all information about this table its definition in code. This action cannot be undone.', array('!table' => $table->get('name'))),
+    t('Revert'), t('Cancel')
+  );
+}
+
+/**
+ * Submit handler for data_ui_drop_form().
+ */
+function data_ui_revert_form_submit($form, &$form_state) {
+  $table = $form['#table'];
+  $table->revert();
+}
 
 /**
  * Form callback for add table form.
@@ -320,6 +364,21 @@ function data_ui_edit_form_submit($form, &$form_state) {
     $meta['fields'][$new['name']]['label'] = $new['label'];
     $table->update(array('meta' => $meta));
   }
+}
+
+/**
+ * Export form.
+ */
+function data_ui_export_form(&$form_state, $table) {
+  $code = data_export($table->get('name'));
+
+  $form['export'] = array(
+    '#title' => t('Export table definition'),
+    '#type' => 'textarea',
+    '#value' => $code,
+    '#rows' => substr_count($code, "\n"),
+  );
+  return $form;
 }
 
 /**

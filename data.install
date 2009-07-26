@@ -11,6 +11,17 @@
 function data_schema() {
   $schema['data_tables'] = array(
     'description' => 'Tables managed by Data module.',
+    'export' => array(
+      'key' => 'name',
+      'identifier' => 'data_table',
+      'default hook' => 'data_default',  // Function hook name.
+      'api' => array(
+        'owner' => 'data',
+        'api' => 'data_default',  // Base name for api include files.
+        'minimum_version' => 1,
+        'current_version' => 1,
+      ),
+    ),
     'fields' => array(
       'title' => array(
         'type' => 'varchar',
