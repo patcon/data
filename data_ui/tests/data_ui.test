@@ -105,7 +105,7 @@ class DataTestCaseUI extends DataTestCase {
    * Drop a table.
    */
   protected function dropTable($table_name) {
-    $this->drupalPost('admin/content/data/'. $table_name .'/drop', array(), 'Drop');
+    $this->drupalPost('admin/content/data/drop/'. $table_name, array(), 'Drop');
     $exists = db_result(db_query('SELECT name FROM {data_tables} WHERE name = "%s"', $table_name));
     $this->assertFalse($exists, 'Table removed from data_tables table.');
     $this->assertFalse(drupal_get_schema($table_name, true), 'Table '. $table_name .' removed from schema API.');

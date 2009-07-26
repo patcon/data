@@ -23,12 +23,13 @@ function data_ui_views_default_views() {
     // check whether this table is a base table. If not, continue.
     // @todo: allow relationships to tables, 2 or more joins away.
     $schema = $table->get('table_schema');
-    if ($links = $table->get('links')) {
-      $left_table = key($links);
+    $meta = $table->get('meta');
+    if (isset($meta['join']) && is_array($meta['join'])) {
+      $left_table = key($meta['join']);
       $left_table_schema = drupal_get_schema($left_table);
 
       if (isset($left_table_schema['primary key']) && count($left_table_schema['primary key'])) {
-        $view->base_table = $left_table->get('name');
+        $view->base_table = $left_table;
       }
     }
     elseif (isset($schema['primary key']) && count($schema['primary key'])) {
@@ -46,7 +47,6 @@ function data_ui_views_default_views() {
 
     // Add our columns to the view's fields.
     $fields = array();
-    $meta = $table->get('meta');
     $meta_fields = $meta['fields'];
     foreach ($schema['fields'] as $field_name => $field) {
       $fields[$field_name] = array(

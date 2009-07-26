@@ -54,56 +54,6 @@ function data_schema() {
         'name' => array('name'),
       ),
   );
-  // @todo: we call join information in DataTable 'links' but here we call it 'join'.
-  $schema['data_join'] = array(
-    'description' => 'Join information for tables managed Data module.',
-    'fields' => array(
-      'left_table' => array(
-        'type' => 'varchar',
-        'length' => '128',
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'Left table.',
-      ),
-      'left_field' => array(
-        'type' => 'varchar',
-        'length' => '255',
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'Column of left table.',
-      ),
-      'right_table' => array(
-        'type' => 'varchar',
-        'length' => '128',
-        'not null' => FALSE,
-        'default' => '',
-        'description' => 'Right table.',
-      ),
-      'right_field' => array( // @todo: should be right_field
-        'type' => 'varchar',
-        'length' => '255',
-        'not null' => FALSE,
-        'default' => '',
-        'description' => 'Column of right table.',
-      ),
-      'inner_join' => array(
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-        'size' => 'tiny',
-        'description' => t('Flag indicating whether this relation should use an INNER JOIN.'),
-      ),
-    ),
-    'primary key' => array(
-      'left_table', 
-      'right_table', 
-    ),
-    'indexes' => array(
-        'left_table' => array('left_table'),
-        'right_table' => array('right_table'),
-    ),
-  );
   // Load dynamically created tables.
   if (db_table_exists('data_tables')) {
     $schema += data_get_schema();
@@ -125,4 +75,19 @@ function data_install() {
 function data_uninstall() {
   // Remove tables.
   drupal_uninstall_schema('data');
+}
+
+/**
+ * Move join information into meta fields.
+ */
+function data_update_6001() {
+  $ret = array();
+  $result = db_query('SELECT * FROM {data_join}');
+  while ($row = db_fetch_object($result)) {
+    if ($table = data_get_table($row->right_table)) {
+      $table->link($row->left_table, $row->left_field, $row->right_field, $row->inner_join ? TRUE : FALSE);
+    }
+  }
+  db_drop_table($ret, 'data_join');
+  return $ret;
 }

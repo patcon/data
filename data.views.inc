@@ -67,15 +67,15 @@ function data_views_data() {
     }
 
     // Add join information.
-    if ($links = $table->get('links')) {
+    if (isset($meta['join']) && is_array($meta['join'])) {
       $table_data['table']['join'] = array();
-      foreach ($links as $link) {
+      foreach ($meta['join'] as $left_table => $join) {
         // @todo: See if left table has other tables it is linked to and link
         // all the way to the leftmost table.
-        $table_data['table']['join'][$link['left_table']] = array(
-          'left_field' => $link['left_field'],
-          'field' => $link['right_field'],
-          'type' => $link['inner_join'] ? 'INNER' : 'LEFT',
+        $table_data['table']['join'][$left_table] = array(
+          'left_field' => $join['left_field'],
+          'field' => $join['field'],
+          'type' => $join['inner_join'] ? 'INNER' : 'LEFT',
         );
       }
     }

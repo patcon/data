@@ -30,7 +30,7 @@ function data_ui_menu() {
     'title' => 'Drop table',
     'description' => 'Drop a data table.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('data_ui_drop_form', 3),
+    'page arguments' => array('data_ui_drop_form', 4),
     'file' => 'data_ui.admin.inc',
     'access arguments' => array('administer data tables'),
     'type' => MENU_CALLBACK, 
@@ -110,8 +110,9 @@ function data_ui_get_default_path($name) {
     // Check, whether there is a data mananged table to the left.
     // @todo: go all the way to the left.
     $path = '';
-    if ($links = $table->get('links')) {
-      $left_table_name = key($links);
+    $meta = $table->get('meta');
+    if (isset($meta['join']) && is_array($meta['join'])) {
+      $left_table_name = key($meta['join']);
       if ($left_table = data_get_table($left_table_name)) {
         $path .= $left_table_name .'/';
       }

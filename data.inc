@@ -99,22 +99,13 @@ class DataTable {
    * Get a property of the DataTable object.
    * 
    * @param $property
-   *   One of 'name', 'title', 'table_schema', 'meta', 'links'.
+   *   One of 'name', 'title', 'table_schema', 'meta'.
    * @return 
    *   The unserialized value of the property.
    */
   public function get($property) {
     if (in_array($property, array('name', 'title', 'table_schema', 'meta', 'export_type'))) {
       return $this->$property;
-    }
-    // Links aren't loaded automatically.
-    if ($property == 'links') {
-      $result = db_query('SELECT * FROM {data_join} WHERE right_table = "%s"', $this->name);
-      $links = array();
-      while ($link = db_fetch_array($result)) {
-        $links[$link->left_table] = $link;
-      }
-      return count($links) ? $links : FALSE;
     }
   }
 
@@ -376,28 +367,30 @@ class DataTable {
   }
 
   /**
-   * Link this table to another table.
+   * Link this table to another table. Linking a table to another one is
+   * to define how data in these tables should be joined to each other.
+   * 
+   * There can be more than one link to the left of a table. However,
+   * for views integration, only the first join created will be used.
    */
-  public function link($foreignTable, $foreignField, $field = NULL, $inner = TRUE) {
+  public function link($left_table, $left_field, $field = NULL, $inner_join = TRUE) {
     if ($field == NULL) {
-      $field = $foreignField;
+      $field = $left_table;
     }
-    $this->unlink($foreignTable);
-    $join_info = array(
-      'left_table' => $foreignTable,
-      'right_table' => $this->name,
-      'left_field' => $foreignField,
-      'right_field' => $field,
-      'inner_join' => $inner ? 1 : 0,
+    $this->meta['join'][$left_table] = array(
+      'left_field' => $left_field,
+      'field' => $field,
+      'inner_join' => $inner,
     );
-    drupal_write_record('data_join', $join_info);
+    $this->update(array('meta' => $this->meta));
   }
 
   /**
    * Unlink this table from another table.
    */
-  public function unlink($foreignTable) {
-    db_query('DELETE FROM {data_join} WHERE left_table = "%s" AND right_table = "%s"', $foreignTable, $this->name);
+  public function unlink($left_table) {
+    unset($this->meta['join'][$left_table]);
+    $this->update(array('meta' => $this->meta));
   }
 
   /**
