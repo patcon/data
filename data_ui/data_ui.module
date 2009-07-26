@@ -26,7 +26,7 @@ function data_ui_menu() {
     'access arguments' => array('administer data tables'),
     'type' => MENU_CALLBACK, 
   );
-  $items['admin/content/data/%data_ui_table/drop'] = array(
+  $items['admin/content/data/drop/%data_ui_table'] = array(
     'title' => 'Drop table',
     'description' => 'Drop a data table.',
     'page callback' => 'drupal_get_form',

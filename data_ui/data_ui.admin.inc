@@ -26,7 +26,7 @@ function data_ui_overview() {
     else {
       $status = t('Normal');
       $operations[] = l(t('Edit'), 'admin/content/data/edit/'. $table->get('name'));
-      $operations[] = l(t('Drop'), 'admin/content/data/'. $table->get('name') .'/drop');
+      $operations[] = l(t('Drop'), 'admin/content/data/drop'. $table->get('name'));
     }
     if (module_exists('ctools')) {
       $operations[] = l(t('Export'), 'admin/content/data/export/'. $table->get('name'));
