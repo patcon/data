@@ -24,7 +24,7 @@ function data_ui_views_default_views() {
     // @todo: allow relationships to tables, 2 or more joins away.
     $schema = $table->get('table_schema');
     if ($links = $table->get('links')) {
-      $left_table = data_get_table(key($links));
+      $left_table = key($links);
       $left_table_schema = drupal_get_schema($left_table);
 
       if (isset($left_table_schema['primary key']) && count($left_table_schema['primary key'])) {
