@@ -8,6 +8,7 @@ The Data module provides
 * An API for dynamically allocating tables for single-row records
 * An API for insert/update/delete operations
 * Automatic views integration
+* Together with CTools modules exportable configurations
 
 Its companion Data UI provides
 
