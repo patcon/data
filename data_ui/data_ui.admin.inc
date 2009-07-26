@@ -185,7 +185,7 @@ function data_ui_revert_form(&$form_state, $table) {
 }
 
 /**
- * Submit handler for data_ui_drop_form().
+ * Submit handler for data_ui_revert_form().
  */
 function data_ui_revert_form_submit($form, &$form_state) {
   $table = $form['#table'];
@@ -193,7 +193,7 @@ function data_ui_revert_form_submit($form, &$form_state) {
 }
 
 /**
- * Form callback for add table form.
+ * Form callback for drop table form.
  */
 function data_ui_drop_form(&$form_state, $table) {
   $form = array();
