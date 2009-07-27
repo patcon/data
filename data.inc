@@ -125,19 +125,6 @@ class DataTable {
       }
     }
   }
- 
-  /**
-   * Determine whether a table exists for this DataTable or not.
-   * 
-   * @return 
-   *   TRUE if there is a table for this DataTable, FALSE if not.
-   */
-  public function exists() {
-    if (empty($this->table_schema)) {
-      return FALSE;
-    }
-    return TRUE;
-  }
 
   /**
    * Adjust table.
