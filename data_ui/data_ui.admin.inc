@@ -396,6 +396,13 @@ function data_ui_edit_form(&$form_state, $table) {
         '#type' => 'checkbox',
         '#default_value' => isset($schema['primary key']) ? in_array($field_name, $schema['primary key']) : FALSE,
       );
+      if ($link = _data_ui_get_link($meta['join'], $table->get('name'), $field_name)) {
+        $link = implode('->', $link);
+      }
+      else {
+        $link = '-';
+      }
+      $form['fields'][$field_name]['linked']['#value'] = $link;
     }
   }
 
@@ -564,7 +571,7 @@ function theme_data_ui_edit_form($form) {
   }
   $rows[] = $row;
 
-  $header = array(t('Select'), t('Name'), t('Label'), t('Type'), t('Unsigned'), t('Index'), t('Primary key'));
+  $header = array(t('Select'), t('Name'), t('Label'), t('Type'), t('Unsigned'), t('Index'), t('Primary key'), t('Joins to'));
   $output .= theme('table', $header, $rows);
   $output .= drupal_render($form);
   return $output;
@@ -650,4 +657,18 @@ function _data_ui_field_form($required = FALSE) {
     '#type' => 'checkbox',
   );
   return $form;
+}
+
+/**
+ * Helper function to get link information for a specific field.
+ */
+function _data_ui_get_link($join, $table, $field) {
+  if (is_array($join)) {
+    foreach ($join as $left_table => $info) {
+      if ($info['field'] == $field) {
+        return array('left_table' => $left_table, 'left_field' => $info['left_field']);
+      }
+    }
+  }
+  return FALSE;
 }

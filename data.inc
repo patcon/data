@@ -384,6 +384,8 @@ class DataTable {
    * 
    * There can be more than one link to the left of a table. However,
    * for views integration, only the first join created will be used.
+   * 
+   * @todo: Get rid of link() language, use setJoin()/removeJoin() instead.
    */
   public function link($left_table, $left_field, $field = NULL, $inner_join = TRUE) {
     if ($field == NULL) {
