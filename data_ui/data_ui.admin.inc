@@ -57,15 +57,128 @@ function data_ui_compare() {
     $row = array();
     $comp = $table->compareSchema();
     $row[] = $table->get('name');
-    $row[] = $comp['status'];
-    $row[] = empty($comp['warning']) ? '-' : $comp['warning'];
-    if ($comp['status'] != 'same') {
-      $row[] = 'Schema info | Database @todo';
+    $status = $comp['status'];
+    if ($status != 'same') {
+      $status .= ' - '. l(t('adjust'), 'admin/content/data/compare/'. $table->get('name'));
     }
+    $row[] = $status;
+    $row[] = empty($comp['warning']) ? '-' : $comp['warning'];
     $rows[] = $row;
   }
-  $header = array(t('Name'), t('Status'), t('Warnings'), t('Adjust'));
+  $header = array(t('Name'), t('Status'), t('Warnings'));
   return theme('table', $header, $rows);
+}
+
+/**
+ * Adjust table schema form: Present the user with the difference between schema information and 
+ * the actual schema in the Database and offer three options: 
+ * 
+ * - Adjust schema info,
+ * - adjust database or
+ * - leave it.
+ */
+function data_ui_adjust_form(&$form_state, $table) {
+  drupal_set_title(t('Adjust !table', array('!table' => $table->get('name'))));
+  $comparison = $table->compareSchema();
+
+  $form = array();
+  $form['#redirect'] = 'admin/content/data/compare';
+  $form['#table'] = $table;
+  $form['comparison'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Comparison'),
+  );
+  $form['comparison']['comparison']['#value'] = theme('data_ui_schema_compare_table', $comparison);
+
+  if ($comparison['status'] == 'different') {
+    $form['update_schema'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Option 1: Update schema information'),
+      );
+    $form['update_schema']['description'] = array(
+      '#value' => t('<p>This option will update the schema information about this table.</p>'),
+    );
+    $form['update_schema']['submit'] = array(
+      '#type' => 'submit',
+      '#submit' => array('data_ui_adjust_form_submit_update_schema'),
+      '#value' => t('Update schema information'),
+    );
+    $form['alter_table'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Option 2: Alter table'),
+      );
+    $form['alter_table']['description'] = array(
+      '#value' => t('<p>Review the changes above carefully! 
+        This option will alter the database table and can very 
+        easily cause data loss.</p>'),
+    );
+    $form['alter_table']['submit'] = array(
+      '#type' => 'submit',
+      '#submit' => array('data_ui_adjust_form_submit_alter_table'),
+      '#value' => t('Alter table'),
+    );
+  }
+  elseif ($comparison['status'] == 'missing') {
+    $form['alter_table'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Create table'),
+      );
+    $form['alter_table']['description'] = array(
+      '#value' => t('<p>Create a new table from schema information.</p>'),
+    );
+    $form['alter_table']['submit'] = array(
+      '#type' => 'submit',
+      '#submit' => array('data_ui_adjust_form_submit_create_table'),
+      '#value' => t('Create table'),
+    );
+  }
+  $form['cancel'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Don\'t change anything'),
+    );
+  $form['cancel']['cancel'] = array(
+    '#type' => 'submit',
+    '#value' => t('Cancel'),
+  );
+  return $form;
+}
+
+/**
+ * Submit handler for data_ui_adjust_form().
+ */
+function data_ui_adjust_form_submit_update_schema($form, &$form_state) {
+  $table = $form['#table'];
+  $schema = schema_invoke('inspect');
+  if (isset($schema[$table->get('name')])) {
+    $table->update(array('table_schema' => $schema[$table->get('name')]));
+    drupal_set_message(t('Updated schema for !table', array('!table' => $table->get('name'))));
+  }
+  else {
+    drupal_set_message(t('Error updating schema'), 'error');
+  }
+}
+
+/**
+ * Submit handler for data_ui_adjust_form().
+ */
+function data_ui_adjust_form_submit_alter_table($form, &$form_state) {
+  $table = $form['#table'];
+  drupal_set_message('Altered table');
+}
+
+/**
+ * Submit handler for data_ui_adjust_form().
+ */
+function data_ui_adjust_form_submit_create_table($form, &$form_state) {
+  $table = $form['#table'];
+  $ret = array();
+  db_create_table($ret, $table->get('name'), $table->get('table_schema'));
+  if ($ret[0]['success']) {
+    drupal_set_message(t('Created table !table', array('!table' => $table->get('name'))));
+  }
+  else {
+    drupal_set_message(t('Error creating table'), 'error');
+  }
 }
 
 /**
@@ -454,6 +567,33 @@ function theme_data_ui_edit_form($form) {
   $header = array(t('Select'), t('Name'), t('Label'), t('Type'), t('Unsigned'), t('Index'), t('Primary key'));
   $output .= theme('table', $header, $rows);
   $output .= drupal_render($form);
+  return $output;
+}
+
+/**
+ * Theme a schema module comparison result. Ie. the result of schema_compare_table().
+ * 
+ * @todo: move to schema module - write a patch.
+ */
+function theme_data_ui_schema_compare_table($comparison) {
+  $output = '';
+  foreach ($comparison as $k => $v) {
+    if (!empty($v)) {
+      if (is_string($k)) {
+        $output .= '<dl>';
+        $output .= '<dt>'. ucfirst($k) .':</dt>';
+        $output .= '<dd>';
+        if (is_string($v)) {
+          $output .= $v;
+        }
+        elseif (is_array($v)) {
+          $output .= theme('item_list', $v);
+        }
+        $output .= '</dd>';
+        $output .= '</dl>';
+      }
+    }
+  }
   return $output;
 }
 

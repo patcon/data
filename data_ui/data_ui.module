@@ -22,14 +22,26 @@ function data_ui_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -10,
   );
-  $items['admin/content/data/compare'] = array(
-    'title' => 'Compare schemas',
-    'description' => 'Administer data tables.',
-    'page callback' => 'data_ui_compare',
-    'file' => 'data_ui.admin.inc',
-    'access arguments' => array('administer data tables'), 
-    'type' => MENU_LOCAL_TASK,
-  );
+  // Only offer these options if schema module exists.
+  if (module_exists('schema')) {
+    $items['admin/content/data/compare'] = array(
+      'title' => 'Compare schemas',
+      'description' => 'Administer data tables.',
+      'page callback' => 'data_ui_compare',
+      'file' => 'data_ui.admin.inc',
+      'access arguments' => array('administer data tables'), 
+      'type' => MENU_LOCAL_TASK,
+    );
+    $items['admin/content/data/compare/%data_ui_table'] = array(
+      'title' => 'Adjust schema',
+      'description' => 'Administer data tables.',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('data_ui_adjust_form', 4),
+      'file' => 'data_ui.admin.inc',
+      'access arguments' => array('administer data tables'), 
+      'type' => MENU_LOCAL_TASK,
+    );
+  }
   $items['admin/content/data/create'] = array(
     'title' => 'Create a table',
     'description' => 'Create a data table.',
@@ -102,8 +114,11 @@ function data_ui_theme() {
     'data_ui_edit_form' => array(
       'arguments' => array('form' => array()),
     ),
-    'data_ui_add_form' => array(
+    'data_ui_create_form' => array(
       'arguments' => array('form' => array()),
+    ),
+    'data_ui_schema_compare_table' => array(
+      'arguments' => array('comparison' => array()),
     ),
   );
 }

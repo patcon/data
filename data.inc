@@ -86,6 +86,17 @@ class DataTable {
       return FALSE;
     }
 
+    // If schema module is enabled, inspect and read back to make
+    // sure our schema information is up to date. 
+    // @todo: this is slow, maybe we need to make this an explicit method 
+    // on DataTable.
+    if (module_exists('schema')) {
+      $schema = schema_invoke('inspect');
+      if (isset($schema[$this->name])) {
+        $table_schema = $schema[$this->name];
+      }
+    }
+
     // Update table_schema information.
     $this->update(array('table_schema' => $table_schema));
 
