@@ -69,7 +69,6 @@ class DataTestCaseUI extends DataTestCase {
     $this->drupalGet('admin/content/data/compare');
     $this->assertText('data_table_kittens');
     $this->assertText('missing - adjust');
-    $this->error($this->content);
 
     // Go to schema comparison of data_table_kittens.
     $this->drupalGet('admin/content/data/compare/data_table_kittens');

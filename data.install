@@ -54,10 +54,6 @@ function data_schema() {
         'name' => array('name'),
       ),
   );
-  // Load dynamically created tables.
-  if (db_table_exists('data_tables')) {
-    $schema += data_get_schema();
-  }
   return $schema;
 }
 

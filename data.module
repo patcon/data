@@ -31,6 +31,25 @@ function data_features_api() {
 }
 
 /**
+ * Implementation of hook_schema_alter().
+ * 
+ * This is a central piece of data module: 
+ * Here we tack schema information that has been defined through the API in data_tables
+ * or by hook_data_default onto the $schema array.
+ * 
+ * We do not use hook_schema() for exposing schema information as this would cause a race
+ * condition: ctools/exports looks for data module's data_tables at the same time when
+ * we are actually rebuilding it - follow path through 
+ * data_get_all_tables() ... _data_load_table() ... ctools_export_load_object().
+ */
+function data_schema_alter(&$schema) {
+  $tables = data_get_all_tables();
+  foreach ($tables as $table) {
+    $schema[$table->get('name')] = $table->get('table_schema');
+  }
+}
+
+/**
  * Create a table.
  * 
  * Usage:
@@ -86,20 +105,6 @@ function data_drop_table($name) {
     $table->drop();
     _data_get_table($name, NULL, NULL, TRUE);
   }
-}
-
-/**
- * Get schema info for all data allocated tables.
- * 
- * Pull directly from database to avoid race conditions.
- */
-function data_get_schema() {
-  $schema = array();
-  $result = db_query('SELECT name, table_schema FROM {data_tables}');
-  while ($table = db_fetch_object($result)) {
-    $schema[$table->name] = unserialize($table->table_schema);
-  }
-  return $schema;
 }
 
 /**
@@ -397,6 +402,8 @@ function _data_load_table($name = NULL, $reset = FALSE) {
   if ($table = db_fetch_object(db_query('SELECT * FROM {data_tables} WHERE name = "%s"', $name))) {
       // No export type.
       $table->export_type = DATA_EXPORT_UNDEFINED;
+      $table->table_schema = unserialize($table->table_schema);
+      $table->meta = unserialize($table->meta);
       return $table;
   }
   return FALSE;
