@@ -28,7 +28,7 @@ class DataTestCaseUI extends DataTestCase {
    */
   public function setUp() {
     parent::setUp('data', 'data_ui');
-    
+
     $this->drupalLogin(
       $this->drupalCreateUser(
         array(
@@ -46,6 +46,47 @@ class DataTestCaseUI extends DataTestCase {
     // @todo: edit table.
     $this->drupalGet('admin/content/data/export/'. $table_name);
     $this->dropTable($table_name);
+  }
+
+  /**
+   * Test change management on UI.
+   */
+  public function testChangeManagement() {
+    // Only execute if ctools and schema modules are present.
+    if (!drupal_get_filename('module', 'ctools') || !drupal_get_filename('module', 'schema')) {
+      return;
+    }
+    drupal_install_modules(array('ctools', 'schema', 'data_ui_test'));
+    menu_rebuild();
+
+    // Check for presence of default table.
+    $this->drupalGet('admin/content/data');
+    $this->assertText('data_table_kittens');
+    $this->assertText('Default');
+    $this->assertText('Override | Export');
+
+    // Go to schema comparisons.
+    $this->drupalGet('admin/content/data/compare');
+    $this->assertText('data_table_kittens');
+    $this->assertText('missing - adjust');
+    $this->error($this->content);
+
+    // Go to schema comparison of data_table_kittens.
+    $this->drupalGet('admin/content/data/compare/data_table_kittens');
+    $this->assertText('Adjust data_table_kittens');
+    $this->assertText('Status:');
+    $this->assertText('missing');
+    $this->assertText('Create a new table from schema information.');
+
+    // Create table.
+    $this->drupalPost('admin/content/data/compare/data_table_kittens', array(), t('Create table'));
+    $this->assertText('Created table data_table_kittens');
+    $schema = schema_invoke('inspect');
+    $this->assertTrue($schema['data_table_kittens']);
+    $table = data_get_table('data_table_kittens');
+    $this->assertTrue(!empty($table), 'Table loaded');
+    // $comp = $table->compareSchema();
+    // $this->assertEqual($comp['status'], 'same');
   }
 
   /**

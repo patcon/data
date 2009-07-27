@@ -1,0 +1,7 @@
+; $Id$
+name = "Data UI module tests"
+description = "Test module for Data UI testing."
+package = Testing
+version = VERSION
+core = 6.x
+hidden = TRUE

@@ -190,6 +190,7 @@ function data_ui_adjust_form_submit_create_table($form, &$form_state) {
   $table = $form['#table'];
   $ret = array();
   db_create_table($ret, $table->get('name'), $table->get('table_schema'));
+  drupal_get_schema($table->get('name'), TRUE);
   if ($ret[0]['success']) {
     drupal_set_message(t('Created table !table', array('!table' => $table->get('name'))));
   }
