@@ -69,6 +69,15 @@ function data_ui_menu() {
     'access arguments' => array('administer data tables'),
     'type' => MENU_CALLBACK, 
   );
+  $items['admin/content/data/edit/%data_ui_table/join'] = array(
+    'title' => 'Join tables',
+    'description' => 'Administer data tables.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('data_ui_join_form', 4, 6),
+    'file' => 'data_ui.admin.inc',
+    'access arguments' => array('administer data tables'),
+    'type' => MENU_CALLBACK, 
+  );
   $items['admin/content/data/revert/%data_ui_table'] = array(
     'title' => 'Revert data table',
     'description' => 'Administer data tables.',

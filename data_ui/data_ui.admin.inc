@@ -396,19 +396,24 @@ function data_ui_edit_form(&$form_state, $table) {
         '#type' => 'checkbox',
         '#default_value' => isset($schema['primary key']) ? in_array($field_name, $schema['primary key']) : FALSE,
       );
-      if ($link = _data_ui_get_link($meta['join'], $table->get('name'), $field_name)) {
-        $link = implode('->', $link);
+      if ($join = _data_ui_get_join($meta['join'], $field_name)) {
+        $join = $join['left_table'] .'.'. $join['left_field'];
       }
       else {
-        $link = '-';
+        $join = t('<none>');
       }
-      $form['fields'][$field_name]['linked']['#value'] = $link;
+      $join = l($join, 'admin/content/data/edit/'. $table->get('name') .'/join/'.$field_name);
+      $form['fields'][$field_name]['join']['#value'] = $join;
     }
   }
 
   // Add a new field.
   $form['new'] = _data_ui_field_form();
   $form['new']['primary'] = array(
+    '#type' => 'markup',
+    '#value' => '&nbsp;',
+    );
+  $form['new']['join'] = array(
     '#type' => 'markup',
     '#value' => '&nbsp;',
     );
@@ -508,6 +513,89 @@ function data_ui_edit_form_submit($form, &$form_state) {
 }
 
 /**
+ * Join form.
+ */
+function data_ui_join_form(&$form_state, $table, $field_name) {
+  // drupal_set_title(t('Join field'));
+
+  $schema = $table->get('table_schema');
+  $meta = $table->get('meta');
+
+  // Validate input.
+  if (!isset($field_name) || !isset($schema['fields'][$field_name])) {
+    drupal_set_message(t('Invalid field.'), 'error');
+    drupal_goto('admin/content/data/edit/'. $table->get('name'));
+  }
+
+  // List all tables that schema API knows about as optoins.
+  // @todo: This is a looong list - needs some AHAH to scale better.
+  $table_schemas = drupal_get_schema();
+  ksort($table_schemas);
+  $options = array();
+  foreach ($table_schemas as $table_name => $schema) {
+    if ($table->get('name') != $table_name) {
+      foreach ($schema['fields'] as $name => $info) {
+        $options[$table_name][$table_name .'.'. $name] = $table_name .'.'. $name;
+      }
+    }
+  }
+
+  // Build form.
+  $form = array();
+  $form['#table'] = $table;
+  $form['#field_name'] = $field_name;
+  $form['#redirect'] = 'admin/content/data/edit/'. $table->get('name');
+  $join = _data_ui_get_join($meta['join'], $field_name);
+  $form['#original_join'] = $join;
+  $form['left'] = array(
+    '#type' => 'select',
+    '#title' => t('Join !table_field to', array('!table_field' => $table->get('name') .'.'. $field_name)),
+    '#options' => $options,
+    '#default_value' => $join['left_table'] .'.'. $join['left_field'],
+  );
+  $form['inner_join'] = array(
+    '#type' => 'radios',
+    '#title' => t('Join type'),
+    '#options' => array(t('Left join'), t('Inner join')),
+    '#default_value' => $join['inner_join'] ? $join['inner_join'] : 0,
+  );
+
+  // Use confirm form for its formatting.
+  $form = confirm_form($form,
+    t('Join field'),
+    'admin/content/data/edit/'. $table->get('name'),
+    '',
+    t('Save'), t('Cancel')
+  );
+  $form['actions']['delete'] = array(
+    '#type' => 'submit',
+    '#value' => t('Delete'),
+    '#submit' => array('data_ui_join_form_submit_delete'),
+  );
+  krsort($form['actions']);
+  
+  return $form;
+}
+
+/**
+ * Submit handler for data_ui_join_form().
+ */
+function data_ui_join_form_submit($form, &$form_state) {
+  list($left_table, $left_field) = explode('.', $form_state['values']['left']);
+  $form['#table']->link($left_table, $left_field, $form['#field_name'], $form_state['values']['inner_join']);
+  drupal_set_message(t('Updated join information.'));
+}
+
+/**
+ * Submit handler for data_ui_join_form() - handles deletion.
+ */
+function data_ui_join_form_submit_delete($form, &$form_state) {
+  // Use the original join information.
+  $form['#table']->unlink($form['#original_join']['left_table']);
+  drupal_set_message(t('Removed join information.'));
+}
+
+/**
  * Export form.
  */
 function data_ui_export_form(&$form_state, $table) {
@@ -571,7 +659,7 @@ function theme_data_ui_edit_form($form) {
   }
   $rows[] = $row;
 
-  $header = array(t('Select'), t('Name'), t('Label'), t('Type'), t('Unsigned'), t('Index'), t('Primary key'), t('Joins to'));
+  $header = array(t('Select'), t('Name'), t('Label'), t('Type'), t('Unsigned'), t('Index'), t('Primary key'), t('Joins'));
   $output .= theme('table', $header, $rows);
   $output .= drupal_render($form);
   return $output;
@@ -662,11 +750,12 @@ function _data_ui_field_form($required = FALSE) {
 /**
  * Helper function to get link information for a specific field.
  */
-function _data_ui_get_link($join, $table, $field) {
+function _data_ui_get_join($join, $field) {
   if (is_array($join)) {
     foreach ($join as $left_table => $info) {
       if ($info['field'] == $field) {
-        return array('left_table' => $left_table, 'left_field' => $info['left_field']);
+        $info['left_table'] = $left_table;
+        return $info;
       }
     }
   }
