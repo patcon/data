@@ -127,6 +127,20 @@ class DataTable {
   }
 
   /**
+   * Compare this table's schema to schema of table in DB. 
+   * Requires schema module.
+   * 
+   * @return 
+   *   
+   */
+  public function compareSchema() {
+    if (module_exists('schema')) {
+      $this->table_schema['name'] = $this->name;
+      return schema_compare_table($this->table_schema);
+    }
+  }
+
+  /**
    * Adjust table.
    * 
    * Only adds new columns at the moment: no removal, no indexes.
