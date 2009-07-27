@@ -42,6 +42,7 @@ function data_ui_overview() {
   $rows[] = array(
     l(t('Create new table'), 'admin/content/data/create'),
     '&nbsp;',
+    '&nbsp;',
   );
   $header = array(t('Name'), t('Status'), t('Operations'));
   return theme('table', $header, $rows);
@@ -84,6 +85,7 @@ function data_ui_adjust_form(&$form_state, $table) {
   $form = array();
   $form['#redirect'] = 'admin/content/data/compare';
   $form['#table'] = $table;
+  $form['#comparison'] = $comparison;
   $form['comparison'] = array(
     '#type' => 'fieldset',
     '#title' => t('Comparison'),
@@ -162,8 +164,24 @@ function data_ui_adjust_form_submit_update_schema($form, &$form_state) {
  * Submit handler for data_ui_adjust_form().
  */
 function data_ui_adjust_form_submit_alter_table($form, &$form_state) {
-  $table = $form['#table'];
-  drupal_set_message('Altered table');
+  $resolved = $resolved = array();
+  if (isset($form['#comparison']['reasons'])) {
+    foreach ($form['#comparison']['reasons'] as $field_reason) {
+      list($field, $reason) = explode(': ', $field_reason);
+      if (data_alter_table($form['#table'], $field, $reason)) {
+        $resolved[] = $field_reason;
+      }
+      else {
+        $unresolved[] = $field_reason;
+      }
+    }
+  }
+  if (count($resolved)) {
+    drupal_set_message(t('Resolved') . theme_item_list($resolved));
+  }
+  if (count($unresolved)) {
+    drupal_set_message(t('Could not resolve') . theme_item_list($unresolved), 'error');
+  }
 }
 
 /**

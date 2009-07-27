@@ -3,6 +3,7 @@
 /**
  * @file
  * Hooks and API functions for data module.
+ * @todo: Move helper functions into data.inc or other .inc file.
  */
 
 // Constant designating an undefined export state.
@@ -288,6 +289,63 @@ function data_build_field_definition($stub) {
     $spec['length'] = 255;
   }
   return $spec;
+}
+
+/**
+ * Helper for building a schema API conform index array.
+ */
+function data_build_index_array($field_name, $spec) {
+  // Default to 255 for now.
+  if ($spec['type'] == 'text') {
+    return array(array($field_name, 255));
+  }
+  else {
+    return array($field_name);
+  }
+}
+
+/**
+ * Helper function for adjusting a table's real schema.
+ * @todo: this should live in schema module and should use better defined $reason keys.
+ */
+function data_alter_table($table, $field, $reason) {
+  $schema = $table->get('table_schema');
+
+  switch ($reason) {
+    case 'not in database':
+      if (isset($schema['fields'][$field])) {
+        return $table->addField($field, $schema['fields'][$field]);
+      }
+      return FALSE;
+
+    case 'missing in database':
+      list($type, $field) = explode(' ', $field);
+      // @todo: support multiple keys.
+      if ($type == 'indexes') {
+        return $table->addIndex($field);
+      }
+      elseif ($type == 'unique keys') {
+        return $table->addUniqueKey($field);
+      }
+      elseif ($type == 'primary key') {
+        return $table->addPrimaryKey($schema['primary keys']);
+      }
+      return FALSE;
+
+    case 'primary key:<br />declared': // @todo: yikes!
+      $table->dropPrimaryKey();
+      return $table->changePrimaryKey($schema['primary keys']);
+    case 'missing in schema':
+      if ($field == 'primary key') {
+        return $table->dropPrimaryKey();
+      }
+      return FALSE;
+
+    case 'unexpected column in database':
+      return $this->dropField($field);
+
+  }
+  return FALSE;
 }
 
 /**

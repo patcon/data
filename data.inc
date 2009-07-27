@@ -208,19 +208,16 @@ class DataTable {
   public function addIndex($field) {
     $schema = $this->table_schema;
     if ($schema['fields'][$field]) {
-      if ($schema['fields'][$field]['type'] == 'text') {
-        $index = array(array($field, 255));
-      }
-      else {
-        $index = array($field);
-      }
+      $index = data_build_index_array($field, $schema['fields'][$field]);
       db_add_index($ret, $this->name, $field, $index);
       if ($ret[0]['success']) {
         $schema['indexes'][$field] = array($field);
         $this->update(array('table_schema' => $schema));
         drupal_get_schema($this->name, TRUE);
+        return TRUE;
       }
     }
+    return FALSE;
   }
 
   /**
@@ -231,12 +228,47 @@ class DataTable {
     db_drop_index($ret, $this->name, $field);
     if ($ret[0]['success']) {
       $schema = $this->table_schema;
-      if (isset($schema['indexes'][$field])) {
-        unset($schema['indexes'][$field]);
-      }
+      unset($schema['indexes'][$field]);
       $this->update(array('table_schema' => $schema));
       drupal_get_schema($this->name, TRUE);
+      return TRUE;
     }
+    return FALSE;
+  }
+
+  /**
+   * Add a unique key to a field.
+   */
+  public function addUniqueKey($field) {
+    $schema = $this->table_schema;
+    if ($schema['fields'][$field]) {
+      $ret = array();
+      $index = data_build_index_array($field, $schema['fields'][$field]);
+      db_add_unique_key($ret, $this->name, $field, $index);
+      if ($ret[0]['success']) {
+        $schema['unique keys'][$field] = array($field);
+        $this->update(array('table_schema' => $schema));
+        drupal_get_schema($this->name, TRUE);
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Drop a unique key from a table.
+   */
+  public function dropUniqueKey($field) {
+    $ret = array();
+    db_drop_unique_key($ret, $this->name, $field);
+    if ($ret[0]['success']) {
+      $schema = $this->table_schema;
+      unset($schema['unique keys'][$field]);
+      $this->update(array('table_schema' => $schema));
+      drupal_get_schema($this->name, TRUE);
+      return TRUE;
+    }
+    return FALSE;
   }
 
   /**
@@ -271,7 +303,9 @@ class DataTable {
       $schema['primary key'] = $fields;
       $this->update(array('table_schema' => $schema));
       drupal_get_schema($this->name, TRUE);
+      return TRUE;
     }
+    return FALSE;
   }
 
   /**
@@ -285,7 +319,9 @@ class DataTable {
       $schema['primary key'] = array();
       $this->update(array('table_schema' => $schema));
       drupal_get_schema($this->name, TRUE);
+      return TRUE;
     }
+    return FALSE;
   }
 
   /**
@@ -297,7 +333,7 @@ class DataTable {
       $this->dropPrimarykey();
     }
     if (!empty($fields)) {
-      $this->addPrimaryKey($fields);
+      return $this->addPrimaryKey($fields);
     }
   }
 
