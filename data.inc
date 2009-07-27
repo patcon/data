@@ -392,7 +392,7 @@ class DataTable {
     $this->meta['join'][$left_table] = array(
       'left_field' => $left_field,
       'field' => $field,
-      'inner_join' => $inner,
+      'inner_join' => $inner_join,
     );
     $this->update(array('meta' => $this->meta));
   }
