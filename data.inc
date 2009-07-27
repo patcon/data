@@ -455,6 +455,7 @@ class DataTable {
    */
   public function delete($keys) {
     $where = $values = array();
+    $fields = $this->table_schema['fields'];
     foreach ($keys as $key => $value) {
       $where[] = db_escape_string($key) ." = ". db_type_placeholder($fields[$key]['type']);
       $values[] = $value;
