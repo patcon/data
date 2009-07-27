@@ -48,6 +48,27 @@ function data_ui_overview() {
 }
 
 /**
+ * Comparison page.
+ */
+function data_ui_compare() {
+  $rows = array();
+  $tables = data_get_all_tables();
+  foreach ($tables as $table) {
+    $row = array();
+    $comp = $table->compareSchema();
+    $row[] = $table->get('name');
+    $row[] = $comp['status'];
+    $row[] = empty($comp['warning']) ? '-' : $comp['warning'];
+    if ($comp['status'] != 'same') {
+      $row[] = 'Schema info | Database @todo';
+    }
+    $rows[] = $row;
+  }
+  $header = array(t('Name'), t('Status'), t('Warnings'), t('Adjust'));
+  return theme('table', $header, $rows);
+}
+
+/**
  * Form callback for create table form.
  */
 function data_ui_create_form(&$form_state) {

@@ -15,7 +15,20 @@ function data_ui_menu() {
     'description' => 'Administer data tables.',
     'page callback' => 'data_ui_overview',
     'file' => 'data_ui.admin.inc',
+    'access arguments' => array('administer data tables'),
+  );
+  $items['admin/content/data/overview'] = array(
+    'title' => 'Overview',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  $items['admin/content/data/compare'] = array(
+    'title' => 'Compare schemas',
+    'description' => 'Administer data tables.',
+    'page callback' => 'data_ui_compare',
+    'file' => 'data_ui.admin.inc',
     'access arguments' => array('administer data tables'), 
+    'type' => MENU_LOCAL_TASK,
   );
   $items['admin/content/data/create'] = array(
     'title' => 'Create a table',
