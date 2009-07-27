@@ -152,31 +152,6 @@ class DataTable {
   }
 
   /**
-   * Adjust table.
-   * 
-   * Only adds new columns at the moment: no removal, no indexes.
-   * 
-   * @todo: should be adjust() protected and users call update(array('table_schema' =>)) instead?
-   */
-  public function adjust($new_schema) {
-    if ($schema = drupal_get_schema($this->name)) {
-      if (isset($new_schema['fields'])) {
-
-        foreach ($new_schema['fields'] as $field => $spec) {
-          if (!isset($new_schema['fields'])) {
-            $this->addField($field, $spec);
-          }
-        }
-        if (count($ret)) {
-          drupal_get_schema($this->name, TRUE);
-        }
-        return;
-      }
-    }
-    $this->create($new_schema);
-  }
-
-  /**
    * Add a field.
    * 
    * @todo: Check wether field name is available, otherwise change.
