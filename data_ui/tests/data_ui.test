@@ -80,12 +80,13 @@ class DataTestCaseUI extends DataTestCase {
     // Create table.
     $this->drupalPost('admin/content/data/compare/data_table_kittens', array(), t('Create table'));
     $this->assertText('Created table data_table_kittens');
-    $schema = schema_invoke('inspect');
-    $this->assertTrue($schema['data_table_kittens']);
+    $this->assertTrue(db_table_exists('data_table_kittens'), 'Table data_table_kittens exists in DB.');
+    $schema = schema_invoke('inspect', db_prefix_tables('{data_table_kittens}'));
+    $this->assertTrue(isset($schema['data_table_kittens']), 'Schema API inspector detects table.');
     $table = data_get_table('data_table_kittens');
     $this->assertTrue(!empty($table), 'Table loaded');
-    // $comp = $table->compareSchema();
-    // $this->assertEqual($comp['status'], 'same');
+    $comp = $table->compareSchema();
+    $this->assertEqual($comp['status'], 'same');
   }
 
   /**
