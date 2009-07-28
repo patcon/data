@@ -107,6 +107,14 @@ class DataTable {
   }
 
   /**
+   * Determine whether table really exists in database. This can happen e. g. when tables
+   * are defined by default modules.
+   */
+  public function exists() {
+    return db_table_exists($this->name);
+  }
+
+  /**
    * Get a property of the DataTable object.
    * 
    * @param $property

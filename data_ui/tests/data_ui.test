@@ -87,6 +87,33 @@ class DataTestCaseUI extends DataTestCase {
     $this->assertTrue(!empty($table), 'Table loaded');
     $comp = $table->compareSchema();
     $this->assertEqual($comp['status'], 'same');
+
+    // Drop the table bypassing the API.
+    $ret = array();
+    db_drop_table($ret, $table->get('name'));
+    $this->assertTrue(isset($ret[0]['success']), 'Dropped table bypassing the API.');
+
+    // Override table.
+    $this->drupalGet('admin/content/data');
+    $this->assertText('Override');
+    $edit = array(
+      'new[name]' => 'weight',
+      'new[label]' => 'Weight',
+      'new[type]' => 'int',
+      'new[unsigned]' => TRUE,
+      'new[index]' => TRUE,
+    );
+    $this->drupalPost('admin/content/data/edit/data_table_kittens', $edit, 'Add new');
+    // We are expecting an error here.
+    $this->assertText('Table does not exist in database');
+    $this->assertText('Go to Compare schemas to resolve conflicts.');
+    // Go to admin/content/data/compare and create the table again.
+    $this->drupalPost('admin/content/data/compare/data_table_kittens', array(), t('Create table'));
+    $this->assertText('Created table data_table_kittens');
+    // Repost the new field - this should work now.
+    $this->drupalPost('admin/content/data/edit/data_table_kittens', $edit, 'Add new');
+    $this->assertText('Added field weight');
+    $this->assertText('Added index for field weight');
   }
 
   /**

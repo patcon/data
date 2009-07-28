@@ -464,6 +464,14 @@ function data_ui_edit_form_submit($form, &$form_state) {
   $table = $form_state['values']['table'];
   $schema = $table->get('table_schema');
 
+  if (!$table->exists()) {
+    drupal_set_message(t('Table does not exist in database.'), 'error');
+    if (module_exists('schema')) {
+      drupal_set_message(t('Go to !compare to resolve conflicts.', array('!compare' => l(t('Compare schemas'), 'admin/content/data/compare'))), 'error');
+    }
+    return;
+  }
+
   if ($form_state['clicked_button']['#value'] == t('Save')) {
     $fields = $schema['fields'];
     $new_fields = $form_state['values']['fields'];
@@ -520,9 +528,21 @@ function data_ui_edit_form_submit($form, &$form_state) {
   elseif ($form_state['clicked_button']['#value'] == t('Add new')) {
     $new = $form_state['values']['new'];
     $spec = data_build_field_definition($new);
-    $table->addField($new['name'], $spec);
+    if ($table->addField($new['name'], $spec)) {
+      drupal_set_message(t('Added field !field', array('!field' => $new['name'])));
+    }
+    else {
+      drupal_set_message(t('Error creating field'), 'error');
+      return;
+    }
     if (!empty($new['index'])) {
-      $table->addIndex($new['name']);
+      if ($table->addIndex($new['name'])) {
+        drupal_set_message(t('Added index for field !field', array('!field' => $new['name'])));
+      }
+      else {
+        drupal_set_message(t('Error adding index'), 'error');
+        return;
+      }
     }
     $meta = $table->get('meta');
     $meta['fields'][$new['name']]['label'] = $new['label'];
