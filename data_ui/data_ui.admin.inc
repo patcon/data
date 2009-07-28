@@ -494,8 +494,13 @@ function data_ui_edit_form_submit($form, &$form_state) {
           $new_primary_key[] = $field_name;
         }
       }
-      $table->changeIndex($new_index);
-      $table->changePrimaryKey($new_primary_key);
+      if (!$table->changeIndex($new_index)) {
+        drupal_set_message(t('Error changing indexes'), 'error');
+      }
+      if (!$table->changePrimaryKey($new_primary_key)) {
+        drupal_set_message(t('Error changing primary key'), 'error');
+        
+      }
 
       // Update meta data.
       $meta = $table->get('meta');
@@ -503,6 +508,7 @@ function data_ui_edit_form_submit($form, &$form_state) {
         $meta['fields'][$field_name]['label'] = $field['label'];
       }
       $table->update(array('meta' => $meta));
+      drupal_set_message(t('Saved changes'));
     }
     else {
       // Bulk updates.
@@ -839,7 +845,7 @@ function _data_ui_alter_table($table, $field_reason) {
       return FALSE;
 
     case 'unexpected column in database':
-      return $this->dropField($field);
+      return $table->dropField($field);
 
   }
   return FALSE;

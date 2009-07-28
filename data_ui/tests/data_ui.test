@@ -114,6 +114,39 @@ class DataTestCaseUI extends DataTestCase {
     $this->drupalPost('admin/content/data/edit/data_table_kittens', $edit, 'Add new');
     $this->assertText('Added field weight');
     $this->assertText('Added index for field weight');
+    // @todo: Add a new PK configuration - this does not work right now as DB layer writes one thing while schema API it reads another.
+    // $this->drupalPost('admin/content/data/edit/data_table_kittens', array('fields[weight][primary]' => TRUE), 'Save');
+    // $this->assertText('Saved changes');
+    $this->drupalGet('admin/content/data');
+    $this->assertText('Overridden');
+    $this->drupalGet('admin/content/data/compare');
+    $this->assertText('same');
+
+    // Drop field that we just created and try to recreate it.
+    $ret = array();
+    db_drop_field($ret, 'data_table_kittens', 'weight');
+    $this->assertTrue(isset($ret[0]['success']), 'Dropped weight field bypassing the API.');
+    $this->drupalGet('admin/content/data/compare');
+    $this->assertText('different - adjust');
+    $this->drupalGet('admin/content/data/compare/data_table_kittens');
+    $this->assertText('Status:');
+    $this->assertText('different');
+    $this->assertText('Reasons:');
+    $this->assertText('weight: not in database');
+    $this->assertText('indexes weight: missing in database');
+    // First try to alter table.
+    $this->drupalPost('admin/content/data/compare/data_table_kittens', array(), 'Alter table');
+    $this->assertText('Resolved');
+    $this->assertText('weight: not in database');
+    $this->assertText('indexes weight: missing in database');
+    $this->assertText('same');
+    // Drop field again and now try to adjust schema info about table.
+    $ret = array();
+    db_drop_field($ret, 'data_table_kittens', 'weight');
+    $this->assertTrue(isset($ret[0]['success']), 'Dropped weight field bypassing the API.');
+    $this->drupalPost('admin/content/data/compare/data_table_kittens', array(), 'Update schema information');
+    $this->assertText('Updated schema for data_table_kittens');
+    $this->assertText('same');
   }
 
   /**

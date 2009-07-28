@@ -268,11 +268,16 @@ class DataTable {
     $drop = array_diff($indexes, $fields);
 
     foreach ($add as $field) {
-      $this->addIndex($field);
+      if (!$this->addIndex($field)) {
+        return FALSE;
+      }
     }
     foreach ($drop as $field) {
-      $this->dropIndex($field);
+      if (!$this->dropIndex($field)) {
+        return FALSE;
+      }
     }
+    return TRUE;
   }
 
   /**
