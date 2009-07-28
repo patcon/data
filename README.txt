@@ -26,8 +26,3 @@ While data module does not have any dependencies, its full functionality is only
 available with Schema module and CTools. 
 
 If you use Schema module, apply latest patch from: http://drupal.org/node/533596
-
-DEVELOPMENT
-===========
-
-This module is currently under development. Use with caution.
