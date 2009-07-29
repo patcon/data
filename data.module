@@ -21,16 +21,6 @@ function data_views_api() {
 }
 
 /**
- * Implementation of hook_features_api().
- */
-function data_features_api() {
-  return array(
-    'default_hook' => 'data_default',
-    'file' => drupal_get_path('module', 'data') .'/data.features.inc',
-  );
-}
-
-/**
  * Implementation of hook_schema_alter().
  * 
  * This is a central piece of data module: 
